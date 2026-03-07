@@ -1,58 +1,35 @@
 // src/App.js
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import "./App.css";
-
-// страницы лежат в src/pages
+import {Routes, Route} from "react-router-dom";
+import MainLayout from "./layout/MainLayout";
 import HomePage from "./pages/HomePage";
-import AccountPage from "./pages/AccountPage";
-import AuthPage from "./pages/AuthPage";
-import CartPage from "./pages/CartPage";
+import MenuPage from "./pages/MenuPage";
 import CakesPage from "./pages/CakesPage";
 import DessertsPage from "./pages/DessertsPage";
-import PaymentPage from "./pages/PaymentPage";
-import ProductPage from "./pages/ProductPage";
-import MenuPage from "./pages/MenuPage";
-import ContactsPage from "./pages/ContactPage";
-import ScrollToTop from "./components/ScrollToTop";
 import CustomCakePage from "./pages/CustomCakePage";
+import CartPage from "./pages/CartPage";
 import AdminPage from "./pages/AdminPage";
+import ContactPage from "./pages/ContactPage";
+import AuthPage from "./pages/AuthPage";
+import AccountRoute from "./routes/AccountRoute";
 
-function App() {
+
+const App = () => {
     return (
-        <BrowserRouter>
-            <ScrollToTop />
-            <Routes>
-                {/* Главная */}
-                <Route path="/" element={<HomePage />} />
-
-                {/* Каталог / меню */}
-                <Route path="/menu" element={<MenuPage />} />
-
-                {/* Разделы */}
-                <Route path="/cakes" element={<CakesPage />} />
-                <Route path="/desserts" element={<DessertsPage />} />
-                <Route path="/contacts" element={<ContactsPage />} />
-
-                {/* Корзина и оплата */}
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/payment" element={<PaymentPage />} />
-
-                {/* ACCOUNT = логин/регистрация */}
-                <Route path="/account" element={<AuthPage />} />
-                <Route path="/account.html" element={<AuthPage />} />
-
-                {/* Личный кабинет */}
-                <Route path="/account/profile" element={<AccountPage />} />
-
-                <Route path="/custom-cake" element={<CustomCakePage />} />
-
-                <Route path="/admin" element={<AdminPage />} />
-
-                {/* TODO: сюда потом добавим /admin */}
-            </Routes>
-        </BrowserRouter>
+        <Routes>
+            <Route element={<MainLayout/>}>
+                <Route path="/" element={<HomePage/>}/>
+                <Route path="/menu" element={<MenuPage/>}/>
+                <Route path="/cakes" element={<CakesPage/>}/>
+                <Route path="/desserts" element={<DessertsPage/>}/>
+                <Route path="/contacts" element={<ContactPage/>}/>
+                <Route path="/account" element={<AccountRoute />} />                <Route path="/custom-cake" element={<CustomCakePage/>}/>
+                <Route path="/cart" element={<CartPage/>}/>
+                <Route path="/admin" element={<AdminPage/>}/>
+                <Route path="/auth" element={<AuthPage />} />
+            </Route>
+        </Routes>
     );
-}
+};
 
 export default App;
