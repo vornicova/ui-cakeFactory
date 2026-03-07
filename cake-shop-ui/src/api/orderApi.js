@@ -11,5 +11,5 @@ export async function createOrder(orderPayload) {
     if (!resp.ok) {
         throw new Error("Failed to create order");
     }
-    return resp.json(); // вернёт orderId, status и т.п.
+    return resp.json();
 }

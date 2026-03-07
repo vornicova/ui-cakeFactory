@@ -1,12 +1,8 @@
 // src/pages/CakesPage.jsx
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
 
 const API_BASE = "/api";
-// БЫЛО: /catalog/products → не находились товары
 const PRODUCTS_URL = API_BASE + "/products";
-
-// Бэк для картинок, если imageUrl типа "/images/..."
 const IMAGE_BASE = "http://localhost:8081";
 
 const CakesPage = () => {
@@ -14,43 +10,13 @@ const CakesPage = () => {
     const [loadingProducts, setLoadingProducts] = useState(false);
     const [error, setError] = useState("");
     const [toast, setToast] = useState("");
-    const [cartItemsCount, setCartItemsCount] = useState(0);
-
-    const navigate = useNavigate();
-
-    const loadCartCount = () => {
-        try {
-            const raw = localStorage.getItem("cartItems");
-            if (!raw) {
-                setCartItemsCount(0);
-            } else {
-                const items = JSON.parse(raw);
-                const count = items.reduce(
-                    (sum, it) => sum + (it.quantity || 0),
-                    0
-                );
-                setCartItemsCount(count);
-            }
-        } catch (e) {
-            console.error("Ошибка чтения cartItems", e);
-            setCartItemsCount(0);
-        }
-    };
-
-    useEffect(() => {
-        loadCartCount();
-    }, []);
 
     const getImageSrc = (p) => {
-        if (!p.imageUrl) return null;
-        const url = p.imageUrl.toString().trim();
+        if (!p?.imageUrl) return null;
+        const url = String(p.imageUrl).trim();
         if (!url) return null;
 
-        if (url.startsWith("http://") || url.startsWith("https://")) {
-            return url;
-        }
-
-        // относительный путь → добиваем базой
+        if (url.startsWith("http://") || url.startsWith("https://")) return url;
         return IMAGE_BASE + url;
     };
 
@@ -61,40 +27,15 @@ const CakesPage = () => {
             try {
                 const resp = await fetch(PRODUCTS_URL);
                 if (!resp.ok) {
-                    throw new Error(
-                        "Ошибка загрузки продуктов (" + resp.status + ")"
-                    );
+                    throw new Error(`Ошибка загрузки продуктов (${resp.status})`);
                 }
+
                 const data = await resp.json();
                 const list = Array.isArray(data) ? data : [];
-
-                // фильтруем ТОЛЬКО торты
-                const cakes = list.filter((p) => {
-                    const cat = (
-                        p.categoryName ||
-                        p.category ||
-                        ""
-                    )
-                        .toString()
-                        .toUpperCase();
-
-                    const isCupcake = cat.includes("CUPCAKE");
-
-                    const isCake =
-                        !isCupcake && (
-                            cat.includes("CAKE") ||
-                            cat.includes("CAKES") ||
-                            cat.includes("TORTE")
-                        );
-
-                    return isCake;
-                });
-
-
-                setProducts(cakes);
+                setProducts(list);
             } catch (err) {
                 console.error(err);
-                setError(err.message || "Не удалось загрузить продукты.");
+                setError(err?.message || "Не удалось загрузить продукты.");
             } finally {
                 setLoadingProducts(false);
             }
@@ -103,15 +44,25 @@ const CakesPage = () => {
         fetchProducts();
     }, []);
 
+    const cakes = useMemo(() => {
+        return (products || []).filter((p) => {
+            const cat = String(p.categoryName || p.category || "").toUpperCase();
+
+            const isCupcake = cat.includes("CUPCAKE");
+            const isCake =
+                !isCupcake &&
+                (cat.includes("CAKE") || cat.includes("CAKES") || cat.includes("TORTE"));
+
+            return isCake;
+        });
+    }, [products]);
+
     const handleAddToCart = (product) => {
         try {
             const raw = localStorage.getItem("cartItems");
             const items = raw ? JSON.parse(raw) : [];
 
-            const idx = items.findIndex(
-                (it) => String(it.id) === String(product.id)
-            );
-
+            const idx = items.findIndex((it) => String(it.id) === String(product.id));
             const price = product.price ?? product.basePrice ?? 0;
 
             if (idx === -1) {
@@ -120,7 +71,7 @@ const CakesPage = () => {
                     name: product.name,
                     price,
                     quantity: 1,
-                    imageUrl: product.imageUrl,
+                    imageUrl: product.imageUrl || "",
                     category: product.categoryName || product.category || "",
                 });
             } else {
@@ -128,8 +79,11 @@ const CakesPage = () => {
             }
 
             localStorage.setItem("cartItems", JSON.stringify(items));
+
+            // ✅ обновляем Navbar (через useCart listener)
+            window.dispatchEvent(new Event("cart:updated"));
+
             setToast("Добавлено в корзину");
-            loadCartCount();
             setTimeout(() => setToast(""), 1200);
         } catch (e) {
             console.error(e);
@@ -139,114 +93,83 @@ const CakesPage = () => {
     };
 
     return (
-        <div className="cart-page">
-            <nav className="navbar">
-                <div className="navbar-logo">CAKEFACTORY</div>
-                <div className="navbar-menu">
-                    <Link to="/">Home</Link>
-                    <Link to="/menu">Menu</Link>
-                    <Link to="/cakes" className="active">
-                        Cakes
-                    </Link>
-                    <Link to="/desserts">Pastries</Link>
-                    <Link to="/contacts">Contacts</Link>
-                    <Link to="/account">Account</Link>
-                    <Link to="/custom-cake">Custom cake</Link>
+        <section className="card">
+            <h1>Торты</h1>
+            <p>Все торты CakeFactory, доступные для заказа.</p>
+
+            {error && (
+                <div className="status-msg err" style={{ marginTop: 10 }}>
+                    {error}
                 </div>
-                <div className="navbar-cart">
-                    <span
-                        style={{ cursor: "pointer" }}
-                        onClick={() => navigate("/cart")}
-                    >
-                        Cart ({cartItemsCount})
-                    </span>
-                    &nbsp;·&nbsp; Admin · <Link to="/admin">open</Link>
-                </div>
-            </nav>
+            )}
 
-            <div className="page">
-                <section className="card">
-                    <h1>Торты</h1>
-                    <p>Все торты CakeFactory, доступные для заказа.</p>
-
-                    {error && (
-                        <div className="status-msg err" style={{ marginTop: 10 }}>
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="products-grid" style={{ marginTop: 16 }}>
-                        {loadingProducts && (
-                            <div style={{ fontSize: "0.9rem", color: "#9b7c90" }}>
-                                Загружаем торты...
-                            </div>
-                        )}
-
-                        {!loadingProducts && !products.length && !error && (
-                            <div style={{ fontSize: "0.9rem", color: "#9b7c90" }}>
-                                Пока нет доступных тортов.
-                            </div>
-                        )}
-
-                        {!loadingProducts &&
-                            products.map((p) => {
-                                const price = p.price ?? p.basePrice ?? 0;
-                                const imgSrc = getImageSrc(p);
-
-                                return (
-                                    <div className="product-card" key={p.id}>
-                                        <div className="product-card-image">
-                                            {imgSrc && (
-                                                <img src={imgSrc} alt={p.name} />
-                                            )}
-                                        </div>
-                                        <div className="product-card-body">
-                                            <h3>{p.name}</h3>
-                                            {p.categoryName || p.category ? (
-                                                <div
-                                                    style={{
-                                                        fontSize: "0.75rem",
-                                                        color: "#9b7c90",
-                                                        marginBottom: 4,
-                                                    }}
-                                                >
-                                                    {p.categoryName || p.category}
-                                                </div>
-                                            ) : null}
-                                            {p.description && (
-                                                <p className="product-card-desc">
-                                                    {p.description}
-                                                </p>
-                                            )}
-                                            <div className="product-card-footer">
-                                                <span className="product-price">
-                                                    {price?.toFixed
-                                                        ? price.toFixed(2)
-                                                        : price}{" "}
-                                                    MDL
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    className="btn-primary product-add-btn"
-                                                    onClick={() => handleAddToCart(p)}
-                                                >
-                                                    В корзину
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+            <div className="products-grid" style={{ marginTop: 16 }}>
+                {loadingProducts && (
+                    <div style={{ fontSize: "0.9rem", color: "#9b7c90" }}>
+                        Загружаем торты...
                     </div>
-                </section>
+                )}
 
-                <div className="footer-mini">
-                    © {new Date().getFullYear()} CakeFactory · Cakes
-                </div>
+                {!loadingProducts && !cakes.length && !error && (
+                    <div style={{ fontSize: "0.9rem", color: "#9b7c90" }}>
+                        Пока нет доступных тортов.
+                    </div>
+                )}
+
+                {!loadingProducts &&
+                    cakes.map((p) => {
+                        const price = p.price ?? p.basePrice ?? 0;
+                        const imgSrc = getImageSrc(p);
+
+                        return (
+                            <div className="product-card" key={p.id}>
+                                <div className="product-card-image">
+                                    {imgSrc ? <img src={imgSrc} alt={p.name} /> : null}
+                                </div>
+
+                                <div className="product-card-body">
+                                    <h3>{p.name}</h3>
+
+                                    {p.categoryName || p.category ? (
+                                        <div
+                                            style={{
+                                                fontSize: "0.75rem",
+                                                color: "#9b7c90",
+                                                marginBottom: 4,
+                                            }}
+                                        >
+                                            {p.categoryName || p.category}
+                                        </div>
+                                    ) : null}
+
+                                    {p.description ? (
+                                        <p className="product-card-desc">{p.description}</p>
+                                    ) : null}
+
+                                    <div className="product-card-footer">
+                                        <span className="product-price">
+                                            {typeof price === "number" && price.toFixed
+                                                ? price.toFixed(2)
+                                                : price}{" "}
+                                            MDL
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            className="btn-primary product-add-btn"
+                                            onClick={() => handleAddToCart(p)}
+                                        >
+                                            В корзину
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
             </div>
 
             {toast && <div className="toast">{toast}</div>}
-        </div>
+        </section>
     );
 };
 
