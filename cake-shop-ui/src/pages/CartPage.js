@@ -1,71 +1,72 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-// базовые URL микросервисов через API-gateway
-const API_BASE = "/api"; // если фронт и gateway на одном домене
+const API_BASE = "/api";
 const ORDERS_URL = API_BASE + "/orders";
 const PAYMENTS_URL = API_BASE + "/payments";
-
-// 👇 база для картинок из catalog-service
 const IMAGE_BASE = "http://localhost:8081";
 
 const CartPage = () => {
+    const navigate = useNavigate();
+
     const [items, setItems] = useState([]);
     const [pickupTime, setPickupTime] = useState("");
     const [comment, setComment] = useState("");
     const [status, setStatus] = useState("");
-    const [statusType, setStatusType] = useState(""); // "ok" | "err" | ""
+    const [statusType, setStatusType] = useState(""); // ok | err | ""
     const [loading, setLoading] = useState(false);
 
-    // 1) читаем корзину из localStorage (как в монолите)
     useEffect(() => {
         try {
             const raw = localStorage.getItem("cartItems");
-            if (raw) {
-                setItems(JSON.parse(raw));
-            }
+            setItems(raw ? JSON.parse(raw) : []);
         } catch (e) {
             console.error("Ошибка чтения cartItems из localStorage", e);
+            setItems([]);
         }
     }, []);
 
-    const total = useMemo(
-        () =>
-            items.reduce(
-                (sum, it) => sum + (it.price || 0) * (it.quantity || 0),
-                0
-            ),
-        [items]
-    );
+    const total = useMemo(() => {
+        return items.reduce(
+            (sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 0),
+            0
+        );
+    }, [items]);
 
-    const saveItems = (newItems) => {
+    const itemsCount = useMemo(() => {
+        return items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+    }, [items]);
+
+    const persistItems = (newItems) => {
         setItems(newItems);
         localStorage.setItem("cartItems", JSON.stringify(newItems));
+        window.dispatchEvent(new Event("cart:updated")); // ✅ синхронизация Navbar
     };
 
     const handleInc = (id) => {
         const updated = items.map((it) =>
             String(it.id) === String(id)
-                ? { ...it, quantity: (it.quantity || 0) + 1 }
+                ? { ...it, quantity: (Number(it.quantity) || 0) + 1 }
                 : it
         );
-        saveItems(updated);
+        persistItems(updated);
     };
 
     const handleDec = (id) => {
-        let updated = items
+        const updated = items
             .map((it) =>
                 String(it.id) === String(id)
-                    ? { ...it, quantity: (it.quantity || 0) - 1 }
+                    ? { ...it, quantity: (Number(it.quantity) || 0) - 1 }
                     : it
             )
-            .filter((it) => (it.quantity || 0) > 0);
-        saveItems(updated);
+            .filter((it) => (Number(it.quantity) || 0) > 0);
+
+        persistItems(updated);
     };
 
     const handleRemove = (id) => {
         const updated = items.filter((it) => String(it.id) !== String(id));
-        saveItems(updated);
+        persistItems(updated);
     };
 
     const resetStatus = () => {
@@ -73,7 +74,6 @@ const CartPage = () => {
         setStatusType("");
     };
 
-    // 2) оформление заказа с вызовом order-service + payment-service
     const handleSubmit = async (e) => {
         e.preventDefault();
         resetStatus();
@@ -88,9 +88,7 @@ const CartPage = () => {
         if (!rawUser) {
             setStatus("Сначала войдите в аккаунт.");
             setStatusType("err");
-            setTimeout(() => {
-                window.location.href = "/auth";
-            }, 800);
+            setTimeout(() => navigate("/account"), 600);
             return;
         }
 
@@ -116,11 +114,11 @@ const CartPage = () => {
                 quantity: it.quantity,
             })),
         };
-        const totalAmount = total;
 
         setLoading(true);
+
         try {
-            // 1) создаём заказ
+            // 1) create order
             const orderResp = await fetch(ORDERS_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -128,15 +126,15 @@ const CartPage = () => {
             });
 
             if (!orderResp.ok) {
-                throw new Error("Ошибка оформления заказа (" + orderResp.status + ")");
+                throw new Error(`Ошибка оформления заказа (${orderResp.status})`);
             }
 
             const order = await orderResp.json();
 
-            // 2) создаём платёж
+            // 2) create payment (best-effort)
             const paymentPayload = {
                 orderId: order.id,
-                amount: totalAmount,
+                amount: total,
                 paymentMethod: "CARD",
             };
 
@@ -150,34 +148,29 @@ const CartPage = () => {
                 });
 
                 if (!payResp.ok) {
-                    throw new Error(
-                        "Ошибка при создании платежа (" + payResp.status + ")"
-                    );
+                    throw new Error(`Ошибка при создании платежа (${payResp.status})`);
                 }
 
                 const payment = await payResp.json();
-                paymentStatusText = ` Платёж #${payment.id} · статус: ${
-                    payment.status || "создан"
-                }.`;
+                paymentStatusText = ` Платёж #${payment.id} · статус: ${payment.status || "создан"}.`;
             } catch (payErr) {
                 console.error(payErr);
                 paymentStatusText =
-                    " Платёж пока не создан, попробуйте позже оплатить заново в личном кабинете.";
+                    " Платёж пока не создан — попробуйте оплатить позже в личном кабинете.";
             }
 
-            saveItems([]);
+            // clear cart
+            persistItems([]);
             setPickupTime("");
             setComment("");
 
             setStatus(`Заказ #${order.id} успешно создан!` + paymentStatusText);
             setStatusType("ok");
 
-            setTimeout(() => {
-                window.location.href = "/account";
-            }, 1500);
+            setTimeout(() => navigate("/account"), 1200);
         } catch (err) {
             console.error(err);
-            setStatus(err.message || "Не удалось оформить заказ.");
+            setStatus(err?.message || "Не удалось оформить заказ.");
             setStatusType("err");
         } finally {
             setLoading(false);
@@ -185,169 +178,125 @@ const CartPage = () => {
     };
 
     return (
-        <div className="cart-page">
-            <nav className="navbar">
-                <div className="navbar-logo">CAKEFACTORY</div>
-                <div className="navbar-menu">
-                    <a href="/">Home</a>
-                    <a href="/menu">Menu</a>
-                    <a href="/cakes">Cakes</a>
-                    <a href="/desserts">Pastries</a>
-                    <a href="/account">Account</a>
-                    <a href="/custom-cake">Custom cake</a>
+        <div className="layout">
+            {/* Left: cart items */}
+            <section className="card">
+                <div className="card-title">
+                    <h1>Корзина</h1>
+                    <span className="small">{itemsCount ? `${itemsCount} шт.` : "пуста"}</span>
                 </div>
-                <div className="navbar-cart">
-                    <span>Cart ({items.length})</span>
-                    &nbsp;·&nbsp; Admin · <a href="/admin">open</a>
-                </div>
-            </nav>
 
-            <div className="page">
-                <div className="layout">
-                    {/* Левая карточка: список товаров */}
-                    <section className="card">
-                        <h1>Корзина</h1>
-                        <p>Проверьте состав заказа перед оформлением.</p>
+                <p className="small" style={{ marginTop: 6 }}>
+                    Проверьте состав заказа перед оформлением.
+                </p>
 
-                        <div className="cart-items">
-                            {!items.length && (
-                                <p
-                                    style={{
-                                        color: "#9b7c90",
-                                        fontSize: "0.9rem",
-                                    }}
-                                >
-                                    Ваша корзина пуста.
-                                </p>
-                            )}
-
-                            {items.map((item) => {
-                                const lineTotal =
-                                    (item.price || 0) * (item.quantity || 0);
-                                const hasImage =
-                                    item.imageUrl &&
-                                    item.imageUrl.toString().trim().length > 0;
-
-                                return (
-                                    <div className="cart-item" key={item.id}>
-                                        <div className="cart-item-image">
-                                            {hasImage && (
-                                                <img
-                                                    src={`${IMAGE_BASE}${item.imageUrl}`}
-                                                    alt={item.name}
-                                                />
-                                            )}
-                                        </div>
-                                        <div>
-                                            <div className="cart-item-name">
-                                                {item.name}
-                                            </div>
-                                            <div className="cart-item-meta">
-                                                {item.category || ""}
-                                            </div>
-                                            <button
-                                                className="cart-remove"
-                                                onClick={() => handleRemove(item.id)}
-                                            >
-                                                Удалить
-                                            </button>
-                                        </div>
-                                        <div className="cart-item-qty">
-                                            <div>{lineTotal.toFixed(2)} MDL</div>
-                                            <div className="cart-qty-controls">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDec(item.id)}
-                                                >
-                                                    -
-                                                </button>
-                                                <span>{item.quantity}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleInc(item.id)}
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        <div className="cart-summary">
-                            <span className="label">Итого:</span>{" "}
-                            <span className="value">
-                                {total.toFixed(2)} MDL
-                            </span>
-                        </div>
-                    </section>
-
-                    {/* Правая карточка: оформление заказа */}
-                    <section className="card">
-                        <h2>Оформление заказа</h2>
-                        <p>
-                            Выберите время самовывоза и добавьте комментарий
-                            для кондитера.
+                <div className="cart-items" style={{ marginTop: 12 }}>
+                    {!items.length && (
+                        <p style={{ color: "#9b7c90", fontSize: "0.9rem" }}>
+                            Ваша корзина пуста.
                         </p>
+                    )}
 
-                        <form onSubmit={handleSubmit}>
-                            <label htmlFor="pickupTime">
-                                Время самовывоза
-                            </label>
-                            <input
-                                type="datetime-local"
-                                id="pickupTime"
-                                value={pickupTime}
-                                onChange={(e) =>
-                                    setPickupTime(e.target.value)
-                                }
-                                required
-                            />
+                    {items.map((item) => {
+                        const lineTotal =
+                            (Number(item.price) || 0) * (Number(item.quantity) || 0);
 
-                            <label htmlFor="comment">Комментарий</label>
-                            <textarea
-                                id="comment"
-                                placeholder="Например: без орехов, надпись на торте, цвет свечей..."
-                                value={comment}
-                                onChange={(e) =>
-                                    setComment(e.target.value)
-                                }
-                            />
+                        const imgUrl =
+                            item.imageUrl && String(item.imageUrl).trim()
+                                ? (String(item.imageUrl).startsWith("http")
+                                    ? item.imageUrl
+                                    : `${IMAGE_BASE}${item.imageUrl}`)
+                                : null;
 
-                            <button
-                                type="submit"
-                                className="btn-primary"
-                                disabled={loading}
-                            >
-                                {loading
-                                    ? "Оформляем..."
-                                    : "Оформить заказ"}
-                            </button>
-
-                            {status && (
-                                <div
-                                    className={
-                                        "status-msg " +
-                                        (statusType === "ok"
-                                            ? "ok"
-                                            : statusType === "err"
-                                                ? "err"
-                                                : "")
-                                    }
-                                >
-                                    {status}
+                        return (
+                            <div className="cart-item" key={item.id}>
+                                <div className="cart-item-image">
+                                    {imgUrl ? <img src={imgUrl} alt={item.name} /> : null}
                                 </div>
-                            )}
-                        </form>
-                    </section>
+
+                                <div>
+                                    <div className="cart-item-name">{item.name}</div>
+                                    <div className="cart-item-meta">{item.category || ""}</div>
+
+                                    <button
+                                        type="button"
+                                        className="cart-remove"
+                                        onClick={() => handleRemove(item.id)}
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
+
+                                <div className="cart-item-qty">
+                                    <div>{lineTotal.toFixed(2)} MDL</div>
+
+                                    <div className="cart-qty-controls">
+                                        <button type="button" onClick={() => handleDec(item.id)}>
+                                            -
+                                        </button>
+                                        <span>{item.quantity}</span>
+                                        <button type="button" onClick={() => handleInc(item.id)}>
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
 
-                <div className="footer-mini">
-                    © {new Date().getFullYear()} CakeFactory · Cart &
-                    Checkout
+                <div className="cart-summary" style={{ marginTop: 12 }}>
+                    <span className="label">Итого:</span>{" "}
+                    <span className="value">{total.toFixed(2)} MDL</span>
                 </div>
-            </div>
+            </section>
+
+            {/* Right: checkout */}
+            <section className="card">
+                <h2>Оформление заказа</h2>
+                <p className="small">
+                    Выберите время самовывоза и добавьте комментарий для кондитера.
+                </p>
+
+                <form onSubmit={handleSubmit}>
+                    <label htmlFor="pickupTime">Время самовывоза</label>
+                    <input
+                        type="datetime-local"
+                        id="pickupTime"
+                        value={pickupTime}
+                        onChange={(e) => setPickupTime(e.target.value)}
+                        required
+                    />
+
+                    <label htmlFor="comment">Комментарий</label>
+                    <textarea
+                        id="comment"
+                        placeholder="Например: без орехов, надпись на торте, цвет свечей..."
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                    />
+
+                    <button type="submit" className="btn-primary" disabled={loading}>
+                        {loading ? "Оформляем..." : "Оформить заказ"}
+                    </button>
+
+                    {status && (
+                        <div
+                            className={
+                                "status-msg " +
+                                (statusType === "ok"
+                                    ? "ok"
+                                    : statusType === "err"
+                                        ? "err"
+                                        : "")
+                            }
+                            style={{ marginTop: 10 }}
+                        >
+                            {status}
+                        </div>
+                    )}
+                </form>
+            </section>
         </div>
     );
 };
