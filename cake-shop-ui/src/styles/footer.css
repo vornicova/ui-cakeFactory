@@ -1,0 +1,37 @@
+.footer-mini {
+    border-top: 1px solid #eee;
+    padding: 16px 20px;
+    background: #fafafa;
+}
+
+.footer-mini-container {
+    max-width: 1200px;
+    margin: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand {
+    color: #d48fa6;
+    font-weight: 600;
+}
+
+.footer-text {
+    color: #777;
+}
+
+.footer-socials {
+    display: flex;
+    gap: 14px;
+    font-size: 18px;
+}
+
+.footer-socials a {
+    color: #777;
+    transition: 0.2s;
+}
+
+.footer-socials a:hover {
+    color: #d48fa6;
+}
