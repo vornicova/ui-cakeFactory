@@ -80,7 +80,6 @@ const CakesPage = () => {
 
             localStorage.setItem("cartItems", JSON.stringify(items));
 
-            // ✅ обновляем Navbar (через useCart listener)
             window.dispatchEvent(new Event("cart:updated"));
 
             setToast("Добавлено в корзину");

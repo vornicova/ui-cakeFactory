@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import HomeHero from "../components/home/HomeHero";
 import HomeCategories from "../components/home/HomeCategories";
 import ProductsGrid from "../components/ProductsGrid";
+import HomePageExtras from "../components/home/HomePageExtras";
 import { fallbackProducts } from "../data/fallbackProducts";
 import "../styles/homePage.css";
 
@@ -27,6 +28,7 @@ function HomePage() {
         try {
             const raw = localStorage.getItem("cartItems");
             const items = raw ? JSON.parse(raw) : [];
+
             const index = items.findIndex(
                 (it) => String(it.id) === String(product.id)
             );
@@ -35,7 +37,7 @@ function HomePage() {
                 items.push({
                     id: product.id,
                     name: product.name,
-                    price: product.price,
+                    price: product.price ?? product.basePrice ?? 0,
                     quantity: 1,
                     imageUrl: product.imageUrl || "",
                     category: product.categoryName || product.category || "",
@@ -54,21 +56,20 @@ function HomePage() {
     return (
         <div className="home-page">
             <HomeHero />
-
-            <section className="home-section-title">
-                <p>ABOUT US</p>
-            </section>
             <HomeCategories />
 
             <section className="home-products-section">
                 <div className="home-section-title">
                     <p>POPULAR DESSERTS</p>
                 </div>
+
                 <ProductsGrid
                     products={products.slice(0, 4)}
                     onAddToCart={handleAddToCart}
                 />
             </section>
+
+            <HomePageExtras />
         </div>
     );
 }

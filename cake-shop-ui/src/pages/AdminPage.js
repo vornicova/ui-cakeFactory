@@ -1,6 +1,6 @@
 // src/pages/AdminPage.js
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, {useEffect, useState} from "react";
+import {Link} from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import OrdersList from "../components/admin/tabs/OrdersList";
@@ -22,16 +22,12 @@ import {
 const AdminPage = () => {
     const [activeTab, setActiveTab] = useState("orders");
 
-    // чтобы Navbar был консистентный на всех страницах
     const [cartCount, setCartCount] = useState(0);
     const [adminName, setAdminName] = useState("Admin");
-
-    // -------- ORDERS --------
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [ordersError, setOrdersError] = useState("");
     const [ordersFilterStatus, setOrdersFilterStatus] = useState("");
-
     const loadOrders = async (status = "") => {
         setOrdersLoading(true);
         setOrdersError("");
@@ -53,13 +49,12 @@ const AdminPage = () => {
     const changeOrderStatus = async (orderId, newStatus) => {
         if (!orderId || !newStatus) return;
         try {
-            // ВАЖНО: endpoint может отличаться у тебя на бэке.
-            // Этот вариант: PATCH /orders/{id}/status?status=READY
+
             await apiSend(
                 `${ORDERS_URL}/${encodeURIComponent(orderId)}/status?status=${encodeURIComponent(
                     newStatus
                 )}`,
-                { method: "PATCH" }
+                {method: "PATCH"}
             );
             await loadOrders(ordersFilterStatus);
         } catch (e) {
@@ -67,7 +62,6 @@ const AdminPage = () => {
         }
     };
 
-    // -------- PRODUCTS --------
     const [products, setProducts] = useState([]);
     const [productsLoading, setProductsLoading] = useState(false);
     const [productsError, setProductsError] = useState("");
@@ -89,7 +83,7 @@ const AdminPage = () => {
         try {
             await apiSend(PRODUCTS_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(payload),
             });
             await loadProducts();
@@ -134,7 +128,7 @@ const AdminPage = () => {
         try {
             await apiSend(`${CUSTOMERS_URL}/register`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(payload),
             });
             await loadCustomers();
@@ -165,7 +159,7 @@ const AdminPage = () => {
         try {
             await apiSend(PAYMENTS_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(payload),
             });
             await loadPayments();
@@ -272,7 +266,7 @@ const AdminPage = () => {
 
     return (
         <div className="cart-page">
-            <Navbar cartCount={cartCount} />
+            <Navbar cartCount={cartCount}/>
 
             <div className="page">
                 <header className="admin-header">
