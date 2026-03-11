@@ -31,10 +31,7 @@ const Navbar = () => {
                     Menu
                 </NavLink>
                 <NavLink to="/cakes" className={({ isActive }) => (isActive ? "active" : "")}>
-                    Cakes
-                </NavLink>
-                <NavLink to="/desserts" className={({ isActive }) => (isActive ? "active" : "")}>
-                    Pastries
+                    Designs
                 </NavLink>
                 <NavLink to="/contacts" className={({ isActive }) => (isActive ? "active" : "")}>
                     Contacts

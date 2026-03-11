@@ -1,15 +1,25 @@
-// src/pages/CakesPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 
 const API_BASE = "/api";
 const PRODUCTS_URL = API_BASE + "/products";
 const IMAGE_BASE = "http://localhost:8081";
 
+const DESIGN_FILTERS = [
+    { key: "ALL", label: "Все" },
+    { key: "BIRTHDAY", label: "День рождения" },
+    { key: "WEDDING", label: "Свадебные" },
+    { key: "KIDS", label: "Детские" },
+    { key: "MINIMAL", label: "Минималистичные" },
+    { key: "FLORAL", label: "Цветочные" },
+    { key: "HOLIDAY", label: "Праздничные" },
+];
+
 const CakesPage = () => {
     const [products, setProducts] = useState([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
     const [error, setError] = useState("");
     const [toast, setToast] = useState("");
+    const [activeDesign, setActiveDesign] = useState("ALL");
 
     const getImageSrc = (p) => {
         if (!p?.imageUrl) return null;
@@ -24,6 +34,7 @@ const CakesPage = () => {
         const fetchProducts = async () => {
             setLoadingProducts(true);
             setError("");
+
             try {
                 const resp = await fetch(PRODUCTS_URL);
                 if (!resp.ok) {
@@ -46,17 +57,21 @@ const CakesPage = () => {
 
     const cakes = useMemo(() => {
         return (products || []).filter((p) => {
-            const cat = String(p.categoryName || p.category || "").toUpperCase();
+            const cat = String(p.categoryCode || p.categoryName || p.category || "").toUpperCase();
+            const design = String(p.designCategory || "").trim();
 
-            const isCupcake = cat.includes("CUPCAKE");
-            const isCake =
-                !isCupcake &&
-                (cat.includes("CAKE") || cat.includes("CAKES") || cat.includes("TORTE"));
-
-            return isCake;
+            return cat.includes("CAKE") && design !== "";
         });
     }, [products]);
 
+    const filteredCakes = useMemo(() => {
+        if (activeDesign === "ALL") return cakes;
+
+        return cakes.filter((p) => {
+            const design = String(p.designCategory || "").toUpperCase();
+            return design === activeDesign;
+        });
+    }, [cakes, activeDesign]);
     const handleAddToCart = (product) => {
         try {
             const raw = localStorage.getItem("cartItems");
@@ -79,7 +94,6 @@ const CakesPage = () => {
             }
 
             localStorage.setItem("cartItems", JSON.stringify(items));
-
             window.dispatchEvent(new Event("cart:updated"));
 
             setToast("Добавлено в корзину");
@@ -91,10 +105,30 @@ const CakesPage = () => {
         }
     };
 
+    const getDesignLabel = (designCategory) => {
+        const found = DESIGN_FILTERS.find((item) => item.key === designCategory);
+        return found ? found.label : "Без категории";
+    };
+
     return (
-        <section className="card">
-            <h1>Торты</h1>
-            <p>Все торты CakeFactory, доступные для заказа.</p>
+        <section className="cakes-page">
+            <div className="cakes-page-header">
+                <h1>Каталог тортов</h1>
+                <p>Выберите готовый дизайн или найдите вдохновение для своего торта.</p>
+            </div>
+
+            <div className="design-filters">
+                {DESIGN_FILTERS.map((filter) => (
+                    <button
+                        key={filter.key}
+                        type="button"
+                        className={`design-filter-btn ${activeDesign === filter.key ? "active" : ""}`}
+                        onClick={() => setActiveDesign(filter.key)}
+                    >
+                        {filter.label}
+                    </button>
+                ))}
+            </div>
 
             {error && (
                 <div className="status-msg err" style={{ marginTop: 10 }}>
@@ -109,14 +143,14 @@ const CakesPage = () => {
                     </div>
                 )}
 
-                {!loadingProducts && !cakes.length && !error && (
+                {!loadingProducts && !filteredCakes.length && !error && (
                     <div style={{ fontSize: "0.9rem", color: "#9b7c90" }}>
-                        Пока нет доступных тортов.
+                        В этой категории пока нет доступных тортов.
                     </div>
                 )}
 
                 {!loadingProducts &&
-                    cakes.map((p) => {
+                    filteredCakes.map((p) => {
                         const price = p.price ?? p.basePrice ?? 0;
                         const imgSrc = getImageSrc(p);
 
@@ -127,19 +161,13 @@ const CakesPage = () => {
                                 </div>
 
                                 <div className="product-card-body">
-                                    <h3>{p.name}</h3>
-
-                                    {p.categoryName || p.category ? (
-                                        <div
-                                            style={{
-                                                fontSize: "0.75rem",
-                                                color: "#9b7c90",
-                                                marginBottom: 4,
-                                            }}
-                                        >
-                                            {p.categoryName || p.category}
+                                    {p.designCategory ? (
+                                        <div className="product-design-badge">
+                                            {getDesignLabel(p.designCategory)}
                                         </div>
                                     ) : null}
+
+                                    <h3>{p.name}</h3>
 
                                     {p.description ? (
                                         <p className="product-card-desc">{p.description}</p>
@@ -149,8 +177,7 @@ const CakesPage = () => {
                                         <span className="product-price">
                                             {typeof price === "number" && price.toFixed
                                                 ? price.toFixed(2)
-                                                : price}{" "}
-                                            MDL
+                                                : price} MDL
                                         </span>
 
                                         <button
