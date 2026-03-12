@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE = "/api";
-const PRODUCTS_URL = API_BASE + "/products";
+const CAKE_DESIGNS_URL = API_BASE + "/cake-designs";
 const IMAGE_BASE = "http://localhost:8081";
 
 const DESIGN_FILTERS = [
@@ -15,15 +16,16 @@ const DESIGN_FILTERS = [
 ];
 
 const CakesPage = () => {
-    const [products, setProducts] = useState([]);
-    const [loadingProducts, setLoadingProducts] = useState(false);
+    const navigate = useNavigate();
+
+    const [designs, setDesigns] = useState([]);
+    const [loadingDesigns, setLoadingDesigns] = useState(false);
     const [error, setError] = useState("");
-    const [toast, setToast] = useState("");
     const [activeDesign, setActiveDesign] = useState("ALL");
 
-    const getImageSrc = (p) => {
-        if (!p?.imageUrl) return null;
-        const url = String(p.imageUrl).trim();
+    const getImageSrc = (item) => {
+        if (!item?.imageUrl) return null;
+        const url = String(item.imageUrl).trim();
         if (!url) return null;
 
         if (url.startsWith("http://") || url.startsWith("https://")) return url;
@@ -31,90 +33,67 @@ const CakesPage = () => {
     };
 
     useEffect(() => {
-        const fetchProducts = async () => {
-            setLoadingProducts(true);
+        const fetchCakeDesigns = async () => {
+            setLoadingDesigns(true);
             setError("");
 
             try {
-                const resp = await fetch(PRODUCTS_URL);
+                const resp = await fetch(CAKE_DESIGNS_URL);
                 if (!resp.ok) {
-                    throw new Error(`Ошибка загрузки продуктов (${resp.status})`);
+                    throw new Error(`Ошибка загрузки дизайнов (${resp.status})`);
                 }
 
                 const data = await resp.json();
                 const list = Array.isArray(data) ? data : [];
-                setProducts(list);
+                setDesigns(list);
             } catch (err) {
                 console.error(err);
-                setError(err?.message || "Не удалось загрузить продукты.");
+                setError(err?.message || "Не удалось загрузить каталог дизайнов.");
             } finally {
-                setLoadingProducts(false);
+                setLoadingDesigns(false);
             }
         };
 
-        fetchProducts();
+        fetchCakeDesigns();
     }, []);
 
-    const cakes = useMemo(() => {
-        return (products || []).filter((p) => {
-            const cat = String(p.categoryCode || p.categoryName || p.category || "").toUpperCase();
-            const design = String(p.designCategory || "").trim();
+    const filteredDesigns = useMemo(() => {
+        if (activeDesign === "ALL") return designs;
 
-            return cat.includes("CAKE") && design !== "";
-        });
-    }, [products]);
-
-    const filteredCakes = useMemo(() => {
-        if (activeDesign === "ALL") return cakes;
-
-        return cakes.filter((p) => {
-            const design = String(p.designCategory || "").toUpperCase();
+        return designs.filter((item) => {
+            const design = String(item.designCategory || "").toUpperCase();
             return design === activeDesign;
         });
-    }, [cakes, activeDesign]);
-    const handleAddToCart = (product) => {
-        try {
-            const raw = localStorage.getItem("cartItems");
-            const items = raw ? JSON.parse(raw) : [];
+    }, [designs, activeDesign]);
 
-            const idx = items.findIndex((it) => String(it.id) === String(product.id));
-            const price = product.price ?? product.basePrice ?? 0;
-
-            if (idx === -1) {
-                items.push({
-                    id: product.id,
-                    name: product.name,
-                    price,
-                    quantity: 1,
-                    imageUrl: product.imageUrl || "",
-                    category: product.categoryName || product.category || "",
-                });
-            } else {
-                items[idx].quantity = (items[idx].quantity || 0) + 1;
-            }
-
-            localStorage.setItem("cartItems", JSON.stringify(items));
-            window.dispatchEvent(new Event("cart:updated"));
-
-            setToast("Добавлено в корзину");
-            setTimeout(() => setToast(""), 1200);
-        } catch (e) {
-            console.error(e);
-            setToast("Не удалось добавить в корзину");
-            setTimeout(() => setToast(""), 1200);
-        }
+    const handleSelectDesign = (design) => {
+        navigate("/custom-cake", {
+            state: {
+                selectedDesign: {
+                    id: design.id,
+                    code: design.code,
+                    name: design.name,
+                    description: design.description,
+                    imageUrl: design.imageUrl,
+                    designCategory: design.designCategory,
+                    decorPrice: design.decorPrice,
+                },
+            },
+        });
     };
 
     const getDesignLabel = (designCategory) => {
-        const found = DESIGN_FILTERS.find((item) => item.key === designCategory);
+        const found = DESIGN_FILTERS.find(
+            (item) => item.key === String(designCategory || "").toUpperCase()
+        );
         return found ? found.label : "Без категории";
     };
 
     return (
         <section className="cakes-page">
             <div className="cakes-page-header">
-                <h1>Каталог тортов</h1>
-                <p>Выберите готовый дизайн или найдите вдохновение для своего торта.</p>
+                <h1>Каталог дизайнов тортов</h1>
+                <p>Выберите дизайн и продолжите сборку торта в конструкторе.</p>
             </div>
 
             <div className="design-filters">
@@ -137,55 +116,57 @@ const CakesPage = () => {
             )}
 
             <div className="products-grid" style={{ marginTop: 16 }}>
-                {loadingProducts && (
+                {loadingDesigns && (
                     <div style={{ fontSize: "0.9rem", color: "#9b7c90" }}>
-                        Загружаем торты...
+                        Загружаем дизайны тортов...
                     </div>
                 )}
 
-                {!loadingProducts && !filteredCakes.length && !error && (
+                {!loadingDesigns && !filteredDesigns.length && !error && (
                     <div style={{ fontSize: "0.9rem", color: "#9b7c90" }}>
-                        В этой категории пока нет доступных тортов.
+                        В этой категории пока нет доступных дизайнов.
                     </div>
                 )}
 
-                {!loadingProducts &&
-                    filteredCakes.map((p) => {
-                        const price = p.price ?? p.basePrice ?? 0;
-                        const imgSrc = getImageSrc(p);
+                {!loadingDesigns &&
+                    filteredDesigns.map((item) => {
+                        const price = item.decorPrice ?? 0;
+                        const imgSrc = getImageSrc(item);
 
                         return (
-                            <div className="product-card" key={p.id}>
+                            <div className="product-card" key={item.id}>
                                 <div className="product-card-image">
-                                    {imgSrc ? <img src={imgSrc} alt={p.name} /> : null}
+                                    {imgSrc ? <img src={imgSrc} alt={item.name} /> : null}
                                 </div>
 
                                 <div className="product-card-body">
-                                    {p.designCategory ? (
+                                    {item.designCategory ? (
                                         <div className="product-design-badge">
-                                            {getDesignLabel(p.designCategory)}
+                                            {getDesignLabel(item.designCategory)}
                                         </div>
                                     ) : null}
 
-                                    <h3>{p.name}</h3>
+                                    <h3>{item.name}</h3>
 
-                                    {p.description ? (
-                                        <p className="product-card-desc">{p.description}</p>
+                                    {item.description ? (
+                                        <p className="product-card-desc">{item.description}</p>
                                     ) : null}
 
                                     <div className="product-card-footer">
                                         <span className="product-price">
+                                            +{" "}
                                             {typeof price === "number" && price.toFixed
                                                 ? price.toFixed(2)
-                                                : price} MDL
+                                                : price}{" "}
+                                            MDL
                                         </span>
 
                                         <button
                                             type="button"
                                             className="btn-primary product-add-btn"
-                                            onClick={() => handleAddToCart(p)}
+                                            onClick={() => handleSelectDesign(item)}
                                         >
-                                            В корзину
+                                            Выбрать
                                         </button>
                                     </div>
                                 </div>
@@ -193,8 +174,6 @@ const CakesPage = () => {
                         );
                     })}
             </div>
-
-            {toast && <div className="toast">{toast}</div>}
         </section>
     );
 };
