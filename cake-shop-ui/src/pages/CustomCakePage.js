@@ -330,7 +330,6 @@ const CustomCakePage = () => {
                     layers={form.layers}
                     servings={form.servings}
                     weightKg={weightKg}
-                    decor={form.decor}
                     flavour={currentFlavour}
                     estimatedPrice={estimatedPrice}
                     imageBase={IMAGE_BASE}

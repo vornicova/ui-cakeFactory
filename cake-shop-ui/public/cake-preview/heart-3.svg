@@ -1,0 +1,35 @@
+<svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 200 200"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+>
+
+    <path d="
+M100 165
+L40 120
+A35 35 0 0 1 100 95
+A35 35 0 0 1 160 120
+Z
+"/>
+
+    <path d="
+M100 120
+L60 90
+A25 25 0 0 1 100 70
+A25 25 0 0 1 140 90
+Z
+"/>
+
+    <path d="
+M100 85
+L75 65
+A15 15 0 0 1 100 50
+A15 15 0 0 1 125 65
+Z
+"/>
+
+</svg>
