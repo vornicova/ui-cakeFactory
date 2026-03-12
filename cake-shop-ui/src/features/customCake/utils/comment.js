@@ -4,7 +4,6 @@ export function buildCustomCakeComment({
                                            layers,
                                            servings,
                                            weightKg,
-                                           sweetness,
                                            decor,
                                            flavour,
                                            inscription,
@@ -17,7 +16,7 @@ export function buildCustomCakeComment({
     parts.push(
         `Персональный торт: форма ${shape}, ${size} см, ${layers} ярус(а), ${servings} порций, ~${weightKg} кг.`
     );
-    parts.push(`Вкус: ${flavourText}. Сладость: ${sweetness}.`);
+    parts.push(`Вкус: ${flavourText}`);
     parts.push(`Декор: ${decor}.`);
 
     if (inscription?.trim()) {

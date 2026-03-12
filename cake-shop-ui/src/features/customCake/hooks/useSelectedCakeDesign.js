@@ -1,22 +1,20 @@
-import { useEffect, useState } from "react";
-
-function safeReadSelectedCakeDesign() {
-    try {
-        const raw = localStorage.getItem("selectedCakeDesign");
-        return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-        console.error("Cannot parse selectedCakeDesign", e);
-        return null;
-    }
-}
+import { useMemo } from "react";
+import { useLocation } from "react-router-dom";
 
 export function useSelectedCakeDesign() {
-    const [selectedDesign, setSelectedDesign] = useState(null);
+    const location = useLocation();
 
-    useEffect(() => {
-        const design = safeReadSelectedCakeDesign();
-        setSelectedDesign(design);
-    }, []);
+    return useMemo(() => {
+        if (location.state?.selectedDesign) {
+            return location.state.selectedDesign;
+        }
 
-    return selectedDesign;
+        try {
+            const raw = localStorage.getItem("selectedCakeDesign");
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+            console.error("Cannot parse selectedCakeDesign", e);
+            return null;
+        }
+    }, [location.state]);
 }

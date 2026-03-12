@@ -16,17 +16,16 @@ export function CustomCakeForm({
                                    status,
                                    statusType,
                                    activeDesignSource,
+                                   recommendedWeight,
+                                   recommendedSize,
                                }) {
     const {
         shape,
-        size,
         layers,
         servings,
         weight,
+        manualWeight,
         selectedFlavourId,
-        decor,
-        pickup,
-        sweetness,
         inscription,
         extraComment,
         decorPreview,
@@ -55,6 +54,16 @@ export function CustomCakeForm({
         }));
     };
 
+    const scrollToSection = (sectionId) => {
+        const element = document.getElementById(sectionId);
+        if (!element) return;
+
+        element.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
+    };
+
     return (
         <section className="card custom-cake-form-card">
             <div className="custom-form-header">
@@ -64,18 +73,38 @@ export function CustomCakeForm({
                 </div>
 
                 <div className="custom-form-steps">
-                    <span className="step-chip active">01 Основа</span>
-                    <span className="step-chip">02 Дизайн</span>
-                    <span className="step-chip">03 Детали</span>
+                    <button
+                        type="button"
+                        className="step-chip active"
+                        onClick={() => scrollToSection("cake-base-section")}
+                    >
+                        01 Основа
+                    </button>
+
+                    <button
+                        type="button"
+                        className="step-chip"
+                        onClick={() => scrollToSection("cake-design-section")}
+                    >
+                        02 Дизайн
+                    </button>
+
+                    <button
+                        type="button"
+                        className="step-chip"
+                        onClick={() => scrollToSection("cake-details-section")}
+                    >
+                        03 Детали
+                    </button>
                 </div>
             </div>
 
             <form onSubmit={(e) => e.preventDefault()}>
-                <div className="custom-section">
+                <div className="custom-section" id="cake-base-section">
                     <div className="section-heading">
                         <div>
                             <h3>Основа торта</h3>
-                            <p>Выберите форму, размер и количество ярусов.</p>
+                            <p>Выберите форму, количество гостей и количество ярусов.</p>
                         </div>
                     </div>
 
@@ -97,27 +126,15 @@ export function CustomCakeForm({
                         </div>
 
                         <div>
-                            <label htmlFor="size">Диаметр, см</label>
-                            <select
-                                id="size"
-                                value={size}
-                                onChange={(e) =>
-                                    setState((prev) => ({ ...prev, size: e.target.value }))
-                                }
-                            >
-                                <option value="16">16 см (8–10 порций)</option>
-                                <option value="18">18 см (10–12 порций)</option>
-                                <option value="20">20 см (14–16 порций)</option>
-                            </select>
-                        </div>
-
-                        <div>
                             <label htmlFor="layers">Количество ярусов</label>
                             <select
-                                id="layers"
-                                value={layers}
+                                className="custom-select"
+                                value={state.layers}
                                 onChange={(e) =>
-                                    setState((prev) => ({ ...prev, layers: e.target.value }))
+                                    setState((prev) => ({
+                                        ...prev,
+                                        layers: e.target.value,
+                                    }))
                                 }
                             >
                                 <option value="1">1 ярус</option>
@@ -126,40 +143,105 @@ export function CustomCakeForm({
                             </select>
                         </div>
 
-                        <div>
-                            <label htmlFor="servings">Кол-во порций</label>
-                            <input
-                                id="servings"
-                                type="number"
-                                min="8"
-                                max="40"
-                                value={servings}
-                                onChange={(e) =>
-                                    setState((prev) => ({
-                                        ...prev,
-                                        servings: Number(e.target.value) || "",
-                                    }))
-                                }
-                            />
+                        <div className="form-row-full">
+                            <label htmlFor="servings">Количество гостей</label>
+
+                            <div className="guest-slider-card">
+                                <div className="guest-slider-top">
+                                    <div className="guest-count-badge">{servings}</div>
+
+                                    <div className="guest-slider-meta">
+                                        <strong>гостей</strong>
+                                        <span>
+                                            Рекомендуемый вес: {recommendedWeight} кг · размер: {recommendedSize} см
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <input
+                                    id="servings"
+                                    className="guest-slider"
+                                    type="range"
+                                    min="2"
+                                    max="200"
+                                    step="1"
+                                    value={servings}
+                                    onChange={(e) =>
+                                        setState((prev) => ({
+                                            ...prev,
+                                            servings: Number(e.target.value),
+                                        }))
+                                    }
+                                />
+
+                                <div className="guest-slider-scale">
+                                    <span>2</span>
+                                    <span>24</span>
+                                    <span>46</span>
+                                    <span>68</span>
+                                    <span>90</span>
+                                    <span>112</span>
+                                    <span>134</span>
+                                    <span>156</span>
+                                    <span>178</span>
+                                    <span>200</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="form-row-full">
-                            <label htmlFor="weight">Вес торта, кг</label>
-                            <input
-                                id="weight"
-                                type="number"
-                                min="1"
-                                max="10"
-                                step="0.5"
-                                value={weight}
-                                onChange={(e) =>
-                                    setState((prev) => ({ ...prev, weight: e.target.value }))
-                                }
-                            />
-                            <div className="note">
-                                Для расчёта цены. Например: 2.0 кг ≈ 12–14 порций.
-                            </div>
+                            <label className="manual-weight-toggle">
+                                <input
+                                    type="checkbox"
+                                    checked={manualWeight}
+                                    onChange={(e) =>
+                                        setState((prev) => ({
+                                            ...prev,
+                                            manualWeight: e.target.checked,
+                                            weight: e.target.checked
+                                                ? prev.weight
+                                                : recommendedWeight,
+                                        }))
+                                    }
+                                />
+                                <span>Указать вес вручную</span>
+                            </label>
                         </div>
+
+                        {manualWeight ? (
+                            <div className="form-row-full">
+                                <label htmlFor="weight">Вес торта, кг</label>
+                                <input
+                                    id="weight"
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    step="0.5"
+                                    value={weight}
+                                    onChange={(e) =>
+                                        setState((prev) => ({
+                                            ...prev,
+                                            weight: e.target.value,
+                                        }))
+                                    }
+                                />
+                                <div className="note">
+                                    Автоматически мы рекомендуем {recommendedWeight} кг для {servings} гостей.
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="form-row-full auto-weight-box">
+                                <div className="auto-weight-item">
+                                    <span className="auto-weight-label">Рекомендуемый вес</span>
+                                    <strong>{recommendedWeight} кг</strong>
+                                </div>
+
+                                <div className="auto-weight-item">
+                                    <span className="auto-weight-label">Рекомендуемый размер</span>
+                                    <strong>{recommendedSize} см</strong>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -209,124 +291,91 @@ export function CustomCakeForm({
                                 })}
                             </div>
                         </div>
-
-                        <div>
-                            <label htmlFor="sweetness">Сладость</label>
-                            <select
-                                id="sweetness"
-                                value={sweetness}
-                                onChange={(e) =>
-                                    setState((prev) => ({
-                                        ...prev,
-                                        sweetness: e.target.value,
-                                    }))
-                                }
-                            >
-                                <option value="умеренная">Умеренная</option>
-                                <option value="менее сладкий">Менее сладкий</option>
-                                <option value="по-сладче">По-сладче</option>
-                            </select>
-                        </div>
                     </div>
                 </div>
 
-                {(selectedDesign || activeDesignSource?.type === "catalog") && (
-                    <SelectedDesignCard
-                        imageBase={imageBase}
-                        selectedDesign={selectedDesign}
-                        activeDesignSource={activeDesignSource}
-                        onClearDesign={clearSelectedDesign}
-                    />
-                )}
+                <div id="cake-design-section">
+                    {(selectedDesign || activeDesignSource?.type === "catalog") && (
+                        <SelectedDesignCard
+                            imageBase={imageBase}
+                            selectedDesign={selectedDesign}
+                            activeDesignSource={activeDesignSource}
+                            onClearDesign={clearSelectedDesign}
+                        />
+                    )}
 
-                <div className="custom-section">
-                    <div className="section-heading">
-                        <div>
-                            <h3>Декор и стиль</h3>
-                            <p>Можно выбрать стиль из каталога, загрузить референс или позже использовать AI.</p>
-                        </div>
-                    </div>
-
-                    <div className="form-grid">
-                        <div className="form-row-full">
-                            <label>Декор</label>
-
-                            <div className="inline-options">
-                                {DECORS.map((d) => (
-                                    <button
-                                        key={d}
-                                        type="button"
-                                        className={"chip" + (decor === d ? " selected" : "")}
-                                        onClick={() =>
-                                            setState((prev) => ({ ...prev, decor: d }))
-                                        }
-                                    >
-                                        {d}
-                                    </button>
-                                ))}
+                    <div className="custom-section">
+                        <div className="section-heading">
+                            <div>
+                                <h3>Декор и стиль</h3>
+                                <p>Можно выбрать стиль из каталога, загрузить референс или позже использовать AI.</p>
                             </div>
                         </div>
 
-                        <div className="form-row-full">
-                            <label htmlFor="inscription">
-                                Надпись на торте (по желанию)
-                            </label>
+                        <div className="form-grid">
 
-                            <input
-                                id="inscription"
-                                type="text"
-                                value={inscription}
-                                onChange={(e) =>
-                                    setState((prev) => ({
-                                        ...prev,
-                                        inscription: e.target.value,
-                                    }))
-                                }
-                                placeholder="Например: С днём рождения!"
-                            />
-                        </div>
 
-                        <div className="form-row-full">
-                            <label htmlFor="decorFile">
-                                Загрузить референс декора
-                            </label>
+                            <div className="form-row-full">
+                                <label htmlFor="inscription">
+                                    Надпись на торте (по желанию)
+                                </label>
 
-                            <input
-                                id="decorFile"
-                                type="file"
-                                accept="image/*"
-                                onChange={onDecorFileChange}
-                            />
+                                <input
+                                    id="inscription"
+                                    type="text"
+                                    value={inscription}
+                                    onChange={(e) =>
+                                        setState((prev) => ({
+                                            ...prev,
+                                            inscription: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="Например: С днём рождения!"
+                                />
+                            </div>
 
-                            {decorPreview && (
-                                <div className="decor-preview">
-                                    <img src={decorPreview.src} alt="decor" />
-                                    <div className="decor-preview-info">
-                                        <span>{decorPreview.name}</span>
-                                        <button
-                                            type="button"
-                                            className="btn-outline btn-xs"
-                                            onClick={clearUploadedReference}
-                                        >
-                                            Удалить
-                                        </button>
+                            <div className="form-row-full">
+                                <label htmlFor="decorFile">
+                                    Загрузить референс декора
+                                </label>
+
+                                <input
+                                    id="decorFile"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={onDecorFileChange}
+                                />
+
+                                {decorPreview && (
+                                    <div className="decor-preview">
+                                        <img src={decorPreview.src} alt="decor" />
+                                        <div className="decor-preview-info">
+                                            <span>{decorPreview.name}</span>
+                                            <button
+                                                type="button"
+                                                className="btn-outline btn-xs"
+                                                onClick={clearUploadedReference}
+                                            >
+                                                Удалить
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {!decorPreview && !selectedDesign && !useAiDesign && (
-                                <div className="empty-design-hint">
-                                    Пока дизайн не выбран. Можно выбрать его на странице дизайнов,
-                                    загрузить свой референс или позже использовать AI.
-                                </div>
-                            )}
+                                {!decorPreview && !selectedDesign && !useAiDesign && (
+                                    <div className="empty-design-hint">
+                                        Пока дизайн не выбран. Можно выбрать его на странице дизайнов,
+                                        загрузить свой референс или позже использовать AI.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
+
+                    <AiDesignSection state={state} setState={setState} />
                 </div>
 
-                <AiDesignSection state={state} setState={setState} />
-
-                <div className="custom-section">
+                <div className="custom-section" id="cake-details-section">
                     <div className="section-heading">
                         <div>
                             <h3>Детали заказа</h3>
@@ -335,20 +384,6 @@ export function CustomCakeForm({
                     </div>
 
                     <div className="form-grid">
-                        <div>
-                            <label htmlFor="pickup">Дата и время получения</label>
-
-                            <input
-                                id="pickup"
-                                type="datetime-local"
-                                min={minPickup}
-                                value={pickup}
-                                onChange={(e) =>
-                                    setState((prev) => ({ ...prev, pickup: e.target.value }))
-                                }
-                            />
-                        </div>
-
                         <div className="form-row-full">
                             <label htmlFor="comment">
                                 Дополнительные пожелания

@@ -1,30 +1,13 @@
 import React, { useMemo } from "react";
 import { getImageSrc } from "../utils/image";
 import { buildSummaryLines } from "../utils/pricing";
+import { getCakePreviewIcon } from "../utils/cakePreviewIcon";
 
-function getShapeClass(shape) {
-    if (shape === "Сердце") return "shape-heart";
-    if (shape === "Куб" || shape === "Квадратный") return "shape-square";
-    return "shape-round";
-}
-
-function getDecorClass(decor) {
-    const value = String(decor || "").toLowerCase();
-
-    if (value.includes("ягод")) return "decor-berry";
-    if (value.includes("празд")) return "decor-party";
-    if (value.includes("миним")) return "decor-minimal";
-    return "decor-classic";
-}
-
-function getDesignPreviewSrc(activeDesignSource, imageBase) {
-    if (!activeDesignSource?.imageUrl) return null;
-
-    if (activeDesignSource.type === "catalog") {
-        return getImageSrc(activeDesignSource.imageUrl, imageBase);
-    }
-
-    return activeDesignSource.imageUrl;
+function getDesignSourceLabel(activeDesignSource) {
+    if (activeDesignSource?.type === "ai") return "AI дизайн";
+    if (activeDesignSource?.type === "upload") return "Ваш референс";
+    if (activeDesignSource?.type === "catalog") return "Дизайн из каталога";
+    return "Базовый preview";
 }
 
 export function CakePreview({
@@ -33,22 +16,11 @@ export function CakePreview({
                                 layers,
                                 servings,
                                 weightKg,
-                                decor,
                                 flavour,
                                 estimatedPrice,
                                 imageBase,
                                 activeDesignSource,
                             }) {
-    const flavourSrc = useMemo(
-        () => getImageSrc(flavour?.imageUrl, imageBase),
-        [flavour?.imageUrl, imageBase]
-    );
-
-    const designPreviewSrc = useMemo(
-        () => getDesignPreviewSrc(activeDesignSource, imageBase),
-        [activeDesignSource, imageBase]
-    );
-
     const summaryLines = useMemo(
         () =>
             buildSummaryLines({
@@ -62,21 +34,21 @@ export function CakePreview({
         [shape, size, layers, servings, weightKg, flavour?.name]
     );
 
-    const layerCount = Math.max(1, Number(layers) || 1);
-    const shapeClass = getShapeClass(shape);
-    const decorClass = getDecorClass(decor);
+    const designSourceLabel = getDesignSourceLabel(activeDesignSource);
+    const previewIcon = getCakePreviewIcon(shape, layers);
 
-    const designSourceLabel =
-        activeDesignSource?.type === "ai"
-            ? "AI дизайн"
-            : activeDesignSource?.type === "upload"
-                ? "Ваш референс"
-                : activeDesignSource?.type === "catalog"
-                    ? "Дизайн из каталога"
-                    : "Базовый preview";
+    const flavourSrc = useMemo(
+        () => getImageSrc(flavour?.imageUrl, imageBase),
+        [flavour?.imageUrl, imageBase]
+    );
+
+    const designPreviewSrc = useMemo(
+        () => getImageSrc(activeDesignSource?.imageUrl, imageBase),
+        [activeDesignSource?.imageUrl, imageBase]
+    );
 
     return (
-        <aside className="card cake-preview-card">
+        <aside className="card cake-preview-card modern-preview">
             <div className="cake-preview-top">
                 <div>
                     <h2>Предпросмотр торта</h2>
@@ -86,50 +58,58 @@ export function CakePreview({
                 <span className="preview-source-badge">{designSourceLabel}</span>
             </div>
 
-            <div className="cake-preview-stage">
-                <div className={`cake-visual-live ${shapeClass} ${decorClass}`}>
-                    <div className="cake-glow" />
+            <div className="cake-preview-stage preview-stage-image">
+                <div className="preview-badge-live">{shape} · CUSTOM</div>
 
-                    <div className="cake-stack">
-                        {Array.from({ length: layerCount }).map((_, index) => (
-                            <div
-                                key={index}
-                                className="cake-layer-live"
-                                style={{
-                                    bottom: `${index * 34}px`,
-                                    zIndex: index + 1,
-                                    width: `${188 - index * 10}px`,
-                                }}
+                <div className="cake-preview-photo-wrap">
+                    {flavourSrc ? (
+                        <div className="cake-preview-photo-box">
+                            <img
+                                src={flavourSrc}
+                                className="cake-preview-photo"
+                                alt={flavour?.name || "Cake flavour"}
                             />
-                        ))}
 
-                        {designPreviewSrc && (
-                            <div className="cake-design-overlay-wrap">
-                                <img
-                                    src={designPreviewSrc}
-                                    alt={activeDesignSource?.name || "Cake design"}
-                                    className="cake-design-overlay"
-                                />
-                            </div>
-                        )}
-
-                        {!designPreviewSrc && flavourSrc && (
-                            <div className="cake-flavour-overlay-wrap">
-                                <img
-                                    src={flavourSrc}
-                                    alt={flavour?.name || "Cake flavour"}
-                                    className="cake-flavour-overlay"
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="cake-base-shadow" />
-                    <div className="preview-badge-live">{shape} · CUSTOM</div>
+                            <img
+                                src={previewIcon}
+                                className="cake-preview-shape-badge"
+                                alt={`Иконка формы ${shape}`}
+                            />
+                        </div>
+                    ) : (
+                        <div className="cake-preview-photo-placeholder" />
+                    )}
                 </div>
             </div>
 
-            <div className="preview-info-grid">
+            {designPreviewSrc && (
+                <div className="selected-design-preview-block">
+                    <div className="selected-design-preview-head">
+                        <div>
+                            <span className="label">Выбранный референс</span>
+                            <div className="selected-design-title">
+                                {activeDesignSource?.name || "Дизайн из каталога"}
+                            </div>
+                        </div>
+
+                        {activeDesignSource?.code && (
+                            <span className="selected-design-code">
+                    #{activeDesignSource.code}
+                </span>
+                        )}
+                    </div>
+
+                    <div className="selected-design-preview-image-wrap">
+                        <img
+                            src={designPreviewSrc}
+                            alt={activeDesignSource?.name || "Выбранный дизайн"}
+                            className="selected-design-preview-image"
+                        />
+                    </div>
+                </div>
+            )}
+
+            <div className="preview-info-grid compact-grid">
                 <div className="preview-info-card">
                     <span className="label">Форма</span>
                     <strong>{shape}</strong>
@@ -151,30 +131,25 @@ export function CakePreview({
                 </div>
 
                 <div className="preview-info-card">
-                    <span className="label">Порции</span>
+                    <span className="label">Гости</span>
                     <strong>{servings}</strong>
                 </div>
 
                 <div className="preview-info-card">
-                    <span className="label">Декор</span>
-                    <strong>{decor}</strong>
+                    <span className="label">Источник</span>
+                    <strong>{designSourceLabel}</strong>
                 </div>
             </div>
 
-            <div className="preview-feature-box">
+            <div className="preview-feature-box modern-feature-box">
                 <div className="preview-feature-row">
                     <span className="label">Вкус</span>
-                    <div>{flavour?.name || "—"}</div>
-                </div>
-
-                <div className="preview-feature-row">
-                    <span className="label">Источник дизайна</span>
-                    <div>{designSourceLabel}</div>
+                    <div className="flavour-name">{flavour?.name || "—"}</div>
                 </div>
 
                 {activeDesignSource?.name && (
                     <div className="preview-feature-row">
-                        <span className="label">Название дизайна</span>
+                        <span className="label">Выбранный дизайн</span>
                         <div>{activeDesignSource.name}</div>
                     </div>
                 )}
@@ -187,7 +162,7 @@ export function CakePreview({
                 )}
             </div>
 
-            <div className="price-box preview-price-box">
+            <div className="price-box preview-price-box premium-price-box">
                 <div className="preview-price-label">Примерная цена</div>
                 <div className="price-main">
                     {estimatedPrice ? `${estimatedPrice} MDL` : "— MDL"}
