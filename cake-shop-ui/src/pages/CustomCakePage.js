@@ -2,12 +2,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { FLAVOURS } from "../features/customCake/constants/flavours";
-import { normalizePositiveNumber, calculateEstimatedPrice } from "../features/customCake/utils/pricing";
+import {
+    normalizePositiveNumber,
+    calculateEstimatedPrice,
+} from "../features/customCake/utils/pricing";
 import { useCurrentCustomer } from "../features/customCake/hooks/useCurrentCustomer";
 import { useSelectedCakeDesign } from "../features/customCake/hooks/useSelectedCakeDesign";
 import { CakePreview } from "../features/customCake/components/CakePreview";
 import { CustomCakeForm } from "../features/customCake/components/CustomCakeForm";
-import "../styles/customCake.css"
+import {
+    calculateRecommendedWeightByGuests,
+    calculateRecommendedSizeByGuests,
+} from "../features/customCake/utils/guestSizing";
+import "../styles/customCake.css";
 
 const API_BASE = "/api";
 const IMAGE_BASE = "http://localhost:8081";
@@ -43,9 +50,11 @@ const CustomCakePage = () => {
         layers: "1",
         servings: 12,
         weight: 2,
+        manualWeight: false,
 
         selectedFlavourId: FLAVOURS[0]?.id ?? null,
 
+        decor: "Минималистичный",
         pickup: "",
         inscription: "",
         extraComment: "",
@@ -65,22 +74,47 @@ const CustomCakePage = () => {
     const [status, setStatus] = useState("");
     const [statusType, setStatusType] = useState("");
 
+    const recommendedWeight = useMemo(
+        () => calculateRecommendedWeightByGuests(form.servings),
+        [form.servings]
+    );
+
+    const recommendedSize = useMemo(
+        () => calculateRecommendedSizeByGuests(form.servings),
+        [form.servings]
+    );
+
+    useEffect(() => {
+        if (form.manualWeight) return;
+
+        setForm((prev) => ({
+            ...prev,
+            weight: recommendedWeight,
+        }));
+    }, [recommendedWeight, form.manualWeight]);
+
     useEffect(() => {
         const fetchCustomProduct = async () => {
             try {
                 const resp = await fetch(`${API_BASE}/products`);
-                if (!resp.ok) throw new Error("API error " + resp.status);
+                if (!resp.ok) {
+                    throw new Error(`API error ${resp.status}`);
+                }
 
                 const data = await resp.json();
                 const found =
                     (data || []).find(
                         (p) =>
-                            (p.category && String(p.category).toUpperCase() === "CUSTOM") ||
-                            (p.name && String(p.name).toLowerCase().includes("custom"))
+                            (p.category &&
+                                String(p.category).toUpperCase() === "CUSTOM") ||
+                            (p.name &&
+                                String(p.name).toLowerCase().includes("custom"))
                     ) || null;
 
                 if (!found) {
-                    setStatus('В каталоге не найден продукт категории CUSTOM. Создайте товар "Custom cake" через админку.');
+                    setStatus(
+                        'В каталоге не найден продукт категории CUSTOM. Создайте товар "Custom cake" через админку.'
+                    );
                     setStatusType("err");
                 }
 
@@ -113,7 +147,14 @@ const CustomCakePage = () => {
         return FLAVOURS.find((f) => f.id === form.selectedFlavourId) || null;
     }, [form.selectedFlavourId]);
 
-    const weightKg = useMemo(() => normalizePositiveNumber(form.weight, 2), [form.weight]);
+    const weightKg = useMemo(() => {
+        const baseWeight = form.manualWeight ? form.weight : recommendedWeight;
+        return normalizePositiveNumber(baseWeight, recommendedWeight || 2);
+    }, [form.manualWeight, form.weight, recommendedWeight]);
+
+    const finalCakeSize = useMemo(() => {
+        return form.size || recommendedSize;
+    }, [form.size, recommendedSize]);
 
     const estimatedPrice = useMemo(() => {
         return calculateEstimatedPrice({
@@ -170,6 +211,7 @@ const CustomCakePage = () => {
         }
 
         const reader = new FileReader();
+
         reader.onload = (ev) => {
             setForm((prev) => ({
                 ...prev,
@@ -218,14 +260,18 @@ const CustomCakePage = () => {
             type: "CUSTOM_CAKE",
             customData: {
                 shape: form.shape,
-                size: form.size,
+                size: finalCakeSize,
+                recommendedSize,
                 layers: form.layers,
                 servings: form.servings,
                 weight: weightKg,
+                recommendedWeight,
+                manualWeight: form.manualWeight,
+
                 flavourId: currentFlavour?.id ?? null,
                 flavourName: currentFlavour?.name ?? null,
+
                 decor: form.decor,
-                sweetness: form.sweetness,
                 inscription: form.inscription,
                 pickup: form.pickup,
                 comment: form.extraComment,
@@ -274,11 +320,13 @@ const CustomCakePage = () => {
                     status={status}
                     statusType={statusType}
                     activeDesignSource={activeDesignSource}
+                    recommendedWeight={recommendedWeight}
+                    recommendedSize={recommendedSize}
                 />
 
                 <CakePreview
                     shape={form.shape}
-                    size={form.size}
+                    size={finalCakeSize}
                     layers={form.layers}
                     servings={form.servings}
                     weightKg={weightKg}
@@ -286,7 +334,6 @@ const CustomCakePage = () => {
                     flavour={currentFlavour}
                     estimatedPrice={estimatedPrice}
                     imageBase={IMAGE_BASE}
-                    selectedDesign={form.selectedDesign}
                     activeDesignSource={activeDesignSource}
                 />
             </div>
