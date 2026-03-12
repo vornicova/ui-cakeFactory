@@ -1,0 +1,588 @@
+.custom-cake-form-card {
+    border-radius: 28px;
+    padding: 28px;
+    background: linear-gradient(180deg, #fffdfd 0%, #fff8fb 100%);
+    box-shadow: 0 20px 60px rgba(193, 148, 168, 0.12);
+    border: 1px solid rgba(230, 214, 222, 0.9);
+}
+
+.custom-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+
+.custom-form-header h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    line-height: 1.1;
+    color: #4f3140;
+}
+
+.custom-form-header p {
+    margin: 0;
+    color: #80606e;
+}
+
+.custom-form-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.step-chip {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f7edf1;
+    color: #7e6370;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.step-chip.active {
+    background: #5b3647;
+    color: #fff;
+}
+
+.custom-section {
+    margin-top: 18px;
+    padding: 22px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(233, 218, 225, 0.9);
+}
+
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.section-heading h3 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    color: #573545;
+}
+
+.section-heading p {
+    margin: 0;
+    color: #8b6a78;
+    font-size: 14px;
+}
+
+.source-badge {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f6e9ef;
+    color: #8a566d;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.selected-design-card {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 18px;
+    align-items: center;
+}
+
+.selected-design-media {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #f8eff3;
+    border: 1px solid rgba(232, 215, 222, 0.9);
+}
+
+.selected-design-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.selected-design-placeholder {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: #aa8594;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.selected-design-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.selected-design-meta h4 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    color: #4f3140;
+}
+
+.selected-design-meta p {
+    margin: 4px 0;
+    color: #745664;
+}
+
+.ai-design-body {
+    display: grid;
+    gap: 18px;
+}
+
+.ai-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 56px;
+    height: 32px;
+}
+
+.ai-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.ai-switch-slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #e7d6de;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.ai-switch-slider::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: 0.25s ease;
+}
+
+.ai-switch input:checked + .ai-switch-slider {
+    background: #5b3647;
+}
+
+.ai-switch input:checked + .ai-switch-slider::before {
+    transform: translateX(24px);
+}
+
+.ai-preview-placeholder {
+    border-radius: 20px;
+    border: 1px dashed rgba(180, 143, 160, 0.7);
+    background: linear-gradient(180deg, #fff8fb 0%, #fff 100%);
+    padding: 18px;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-preview-empty {
+    text-align: center;
+    color: #7f6471;
+}
+
+.ai-preview-empty strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 18px;
+    color: #563445;
+}
+
+.ai-status-chip {
+    display: inline-flex;
+    margin-top: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f5e8ee;
+    color: #8e5f74;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ai-preview-ready img {
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    border-radius: 16px;
+    display: block;
+}
+
+.decor-preview {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 18px;
+    background: #fff7fa;
+    border: 1px solid rgba(232, 215, 223, 0.9);
+}
+
+.decor-preview img {
+    width: 84px;
+    height: 84px;
+    object-fit: cover;
+    border-radius: 14px;
+    display: block;
+}
+
+.decor-preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #6c4d5b;
+}
+
+.empty-design-hint {
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #fff8fb;
+    color: #876a78;
+    border: 1px dashed rgba(192, 154, 170, 0.8);
+    font-size: 14px;
+}
+
+.custom-form-footer {
+    margin-top: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.btn-xs {
+    padding: 8px 12px;
+    font-size: 13px;
+}
+.cake-preview-card {
+    position: sticky;
+    top: 110px;
+    border-radius: 28px;
+    padding: 24px;
+    background: linear-gradient(180deg, #fffafc 0%, #ffffff 100%);
+    box-shadow: 0 22px 60px rgba(189, 144, 165, 0.16);
+    border: 1px solid rgba(234, 216, 224, 0.95);
+}
+
+.cake-preview-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.cake-preview-top h2 {
+    margin: 0 0 6px;
+    font-size: 28px;
+    line-height: 1.1;
+    color: #50313f;
+}
+
+.cake-preview-top p {
+    margin: 0;
+    color: #866775;
+    font-size: 14px;
+}
+
+.preview-source-badge {
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: #f8ebf1;
+    color: #8c5b71;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.cake-preview-stage {
+    position: relative;
+    min-height: 330px;
+    padding: 28px 18px 20px;
+    border-radius: 24px;
+    margin-bottom: 20px;
+    background:
+            radial-gradient(circle at 50% 0%, rgba(255, 220, 233, 0.75), transparent 45%),
+            linear-gradient(180deg, #fff8fb 0%, #fffefe 100%);
+    overflow: hidden;
+}
+
+.cake-visual-live {
+    position: relative;
+    width: 100%;
+    min-height: 280px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.cake-glow {
+    position: absolute;
+    inset: 30px 20px auto 20px;
+    height: 120px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(255, 210, 227, 0.55) 0%, rgba(255, 210, 227, 0) 72%);
+    filter: blur(12px);
+    pointer-events: none;
+}
+
+.cake-stack {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.cake-layer-live {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 42px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f7d9e5 0%, #f1c2d2 100%);
+    border: 1px solid rgba(214, 167, 186, 0.45);
+    box-shadow:
+            0 10px 22px rgba(185, 131, 155, 0.14),
+            inset 0 2px 0 rgba(255, 255, 255, 0.45);
+}
+
+.shape-square .cake-layer-live {
+    border-radius: 16px;
+}
+
+.shape-heart .cake-layer-live {
+    clip-path: polygon(
+            50% 100%,
+            0 48%,
+            0 22%,
+            16% 0,
+            36% 0,
+            50% 14%,
+            64% 0,
+            84% 0,
+            100% 22%,
+            100% 48%
+    );
+    height: 56px;
+}
+
+.decor-minimal .cake-layer-live {
+    background: linear-gradient(180deg, #f9e8ef 0%, #f2d8e2 100%);
+}
+
+.decor-party .cake-layer-live {
+    background: linear-gradient(180deg, #f7d2df 0%, #efadc4 100%);
+}
+
+.decor-berry .cake-layer-live {
+    background: linear-gradient(180deg, #efc5d4 0%, #df9ab4 100%);
+}
+
+.decor-classic .cake-layer-live {
+    background: linear-gradient(180deg, #f7d9e5 0%, #f1c2d2 100%);
+}
+
+.cake-design-overlay-wrap,
+.cake-flavour-overlay-wrap {
+    position: absolute;
+    left: 50%;
+    bottom: 34px;
+    transform: translateX(-50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 12px 28px rgba(123, 83, 100, 0.16);
+    border: 4px solid rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.cake-design-overlay,
+.cake-flavour-overlay {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cake-base-shadow {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 190px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(93, 56, 72, 0.1);
+    filter: blur(10px);
+}
+
+.preview-badge-live {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #724b5d;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 20px rgba(171, 129, 149, 0.12);
+}
+
+.preview-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.preview-info-card {
+    padding: 14px;
+    border-radius: 18px;
+    background: #fff8fb;
+    border: 1px solid rgba(232, 214, 222, 0.95);
+}
+
+.preview-info-card .label {
+    display: block;
+    margin-bottom: 6px;
+    color: #91717f;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.preview-info-card strong {
+    color: #50313f;
+    font-size: 15px;
+}
+
+.preview-feature-box {
+    padding: 16px;
+    border-radius: 20px;
+    background: rgba(255, 250, 252, 0.95);
+    border: 1px solid rgba(234, 216, 224, 0.95);
+    margin-bottom: 18px;
+}
+
+.preview-feature-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px dashed rgba(210, 188, 198, 0.7);
+}
+
+.preview-feature-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.preview-feature-row .label {
+    color: #8b6c79;
+    font-size: 13px;
+}
+
+.preview-price-box {
+    border-radius: 22px;
+    background: linear-gradient(135deg, #5a3546 0%, #74485d 100%);
+    color: white;
+    box-shadow: 0 16px 36px rgba(100, 61, 79, 0.24);
+    margin-bottom: 18px;
+}
+
+.preview-price-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.82;
+    margin-bottom: 8px;
+}
+
+.preview-price-box .price-main {
+    color: #fff;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.preview-price-box .note {
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.preview-summary-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.preview-summary-list li {
+    color: #6f5260;
+    margin-bottom: 8px;
+    line-height: 1.45;
+}
+
+@media (max-width: 1024px) {
+    .cake-preview-card {
+        position: static;
+        top: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .preview-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cake-stack {
+        width: 190px;
+        height: 210px;
+    }
+
+    .cake-design-overlay-wrap,
+    .cake-flavour-overlay-wrap {
+        width: 120px;
+        height: 120px;
+    }
+
+    .cake-preview-top h2 {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 900px) {
+    .selected-design-card {
+        grid-template-columns: 1fr;
+    }
+
+    .selected-design-media {
+        max-width: 240px;
+    }
+}

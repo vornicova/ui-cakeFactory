@@ -1,12 +1,13 @@
-// src/pages/CustomCakePage.js
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { FLAVOURS } from "../features/customCake/constants/flavours";
 import { normalizePositiveNumber, calculateEstimatedPrice } from "../features/customCake/utils/pricing";
 import { useCurrentCustomer } from "../features/customCake/hooks/useCurrentCustomer";
+import { useSelectedCakeDesign } from "../features/customCake/hooks/useSelectedCakeDesign";
 import { CakePreview } from "../features/customCake/components/CakePreview";
 import { CustomCakeForm } from "../features/customCake/components/CustomCakeForm";
+import "../styles/customCake.css"
 
 const API_BASE = "/api";
 const IMAGE_BASE = "http://localhost:8081";
@@ -32,10 +33,10 @@ function safeWriteCartItems(items) {
 const CustomCakePage = () => {
     const navigate = useNavigate();
     const customer = useCurrentCustomer();
+    const selectedDesign = useSelectedCakeDesign();
 
     const [customProduct, setCustomProduct] = useState(null);
 
-    // форма (в одном объекте — так проще прокидывать в CustomCakeForm)
     const [form, setForm] = useState(() => ({
         shape: "Круглый",
         size: "18",
@@ -45,20 +46,25 @@ const CustomCakePage = () => {
 
         selectedFlavourId: FLAVOURS[0]?.id ?? null,
 
-        decor: "Минималистичный",
         pickup: "",
-        sweetness: "умеренная",
         inscription: "",
         extraComment: "",
 
         decorPreview: null,
         decorFileName: null,
+
+        selectedDesign: null,
+
+        useAiDesign: false,
+        aiDesignPrompt: "",
+        aiDesignStyle: "Нежный",
+        aiDesignImage: null,
+        aiDesignStatus: "idle",
     }));
 
     const [status, setStatus] = useState("");
-    const [statusType, setStatusType] = useState(""); // ok | err | ""
+    const [statusType, setStatusType] = useState("");
 
-    // грузим CUSTOM продукт
     useEffect(() => {
         const fetchCustomProduct = async () => {
             try {
@@ -90,6 +96,18 @@ const CustomCakePage = () => {
         fetchCustomProduct();
     }, []);
 
+    useEffect(() => {
+        if (!selectedDesign) return;
+
+        setForm((prev) => ({
+            ...prev,
+            selectedDesign,
+            shape: selectedDesign.shape || prev.shape,
+            decor: selectedDesign.decor || prev.decor,
+            layers: selectedDesign.layers || prev.layers,
+        }));
+    }, [selectedDesign]);
+
     const currentFlavour = useMemo(() => {
         if (!form.selectedFlavourId) return null;
         return FLAVOURS.find((f) => f.id === form.selectedFlavourId) || null;
@@ -107,24 +125,64 @@ const CustomCakePage = () => {
         });
     }, [customProduct, weightKg, form.layers, form.decor, currentFlavour?.id]);
 
+    const activeDesignSource = useMemo(() => {
+        if (form.aiDesignImage) {
+            return {
+                type: "ai",
+                name: "AI Design",
+                imageUrl: form.aiDesignImage,
+            };
+        }
+
+        if (form.selectedDesign) {
+            return {
+                type: "catalog",
+                name: form.selectedDesign.name,
+                imageUrl: form.selectedDesign.imageUrl,
+                code: form.selectedDesign.code,
+            };
+        }
+
+        if (form.decorPreview?.src) {
+            return {
+                type: "upload",
+                name: form.decorPreview.name || "Uploaded design",
+                imageUrl: form.decorPreview.src,
+            };
+        }
+
+        return null;
+    }, [form.aiDesignImage, form.selectedDesign, form.decorPreview]);
+
     const minPickup = useMemo(() => new Date().toISOString().slice(0, 16), []);
     const year = new Date().getFullYear();
 
     const handleDecorFileChange = (e) => {
         const file = e.target.files?.[0];
+
         if (!file) {
-            setForm((p) => ({ ...p, decorFileName: null, decorPreview: null }));
+            setForm((prev) => ({
+                ...prev,
+                decorFileName: null,
+                decorPreview: null,
+            }));
             return;
         }
 
         const reader = new FileReader();
         reader.onload = (ev) => {
-            setForm((p) => ({
-                ...p,
+            setForm((prev) => ({
+                ...prev,
                 decorFileName: file.name,
-                decorPreview: { src: ev.target?.result, name: file.name },
+                decorPreview: {
+                    src: ev.target?.result,
+                    name: file.name,
+                },
+                aiDesignImage: null,
+                aiDesignStatus: "idle",
             }));
         };
+
         reader.readAsDataURL(file);
     };
 
@@ -152,11 +210,11 @@ const CustomCakePage = () => {
         }
 
         const cartItem = {
-            id: `custom-${Date.now()}`, // локальный id для корзины
+            id: `custom-${Date.now()}`,
             productId: customProduct.id,
             name: "Custom Cake",
             price: estimatedPrice ?? 0,
-            quantity: weightKg, // вес как quantity
+            quantity: weightKg,
             type: "CUSTOM_CAKE",
             customData: {
                 shape: form.shape,
@@ -172,6 +230,19 @@ const CustomCakePage = () => {
                 pickup: form.pickup,
                 comment: form.extraComment,
                 decorFileName: form.decorFileName,
+
+                designId: form.selectedDesign?.id ?? null,
+                designName: form.selectedDesign?.name ?? null,
+                designCode: form.selectedDesign?.code ?? null,
+                designImageUrl: form.selectedDesign?.imageUrl ?? null,
+
+                useAiDesign: form.useAiDesign,
+                aiDesignPrompt: form.aiDesignPrompt,
+                aiDesignStyle: form.aiDesignStyle,
+                aiDesignImage: form.aiDesignImage,
+
+                activeDesignType: activeDesignSource?.type ?? null,
+                activeDesignName: activeDesignSource?.name ?? null,
             },
         };
 
@@ -202,6 +273,7 @@ const CustomCakePage = () => {
                     onAddToCart={handleAddToCart}
                     status={status}
                     statusType={statusType}
+                    activeDesignSource={activeDesignSource}
                 />
 
                 <CakePreview
@@ -214,6 +286,8 @@ const CustomCakePage = () => {
                     flavour={currentFlavour}
                     estimatedPrice={estimatedPrice}
                     imageBase={IMAGE_BASE}
+                    selectedDesign={form.selectedDesign}
+                    activeDesignSource={activeDesignSource}
                 />
             </div>
 
