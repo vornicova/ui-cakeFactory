@@ -5,7 +5,6 @@ import MainLayout from "./layout/MainLayout";
 import HomePage from "./pages/HomePage";
 import MenuPage from "./pages/MenuPage";
 import CakesPage from "./pages/CakesPage";
-import DessertsPage from "./pages/DessertsPage";
 import CustomCakePage from "./pages/CustomCakePage";
 import CartPage from "./pages/CartPage";
 import AdminPage from "./pages/AdminPage";
@@ -21,7 +20,6 @@ const App = () => {
                 <Route path="/" element={<HomePage/>}/>
                 <Route path="/menu" element={<MenuPage/>}/>
                 <Route path="/cakes" element={<CakesPage/>}/>
-                <Route path="/desserts" element={<DessertsPage/>}/>
                 <Route path="/contacts" element={<ContactPage/>}/>
                 <Route path="/account" element={<AccountRoute />} />                <Route path="/custom-cake" element={<CustomCakePage/>}/>
                 <Route path="/cart" element={<CartPage/>}/>
