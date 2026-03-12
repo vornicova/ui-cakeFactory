@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "../styles/designFilters.css";
 
 const API_BASE = "/api";
 const CAKE_DESIGNS_URL = API_BASE + "/cake-designs";
