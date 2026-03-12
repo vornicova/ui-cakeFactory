@@ -1,5 +1,7 @@
 // src/pages/MenuPage.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import "../styles/menuFiltres.css";
+
 
 const API_BASE = "/api";
 const PRODUCTS_URL = `${API_BASE}/products`;
