@@ -26,8 +26,6 @@ export function CustomCakeForm({
         weight,
         manualWeight,
         selectedFlavourId,
-        decor,
-        pickup,
         inscription,
         extraComment,
         decorPreview,
@@ -130,10 +128,13 @@ export function CustomCakeForm({
                         <div>
                             <label htmlFor="layers">Количество ярусов</label>
                             <select
-                                id="layers"
-                                value={layers}
+                                className="custom-select"
+                                value={state.layers}
                                 onChange={(e) =>
-                                    setState((prev) => ({ ...prev, layers: e.target.value }))
+                                    setState((prev) => ({
+                                        ...prev,
+                                        layers: e.target.value,
+                                    }))
                                 }
                             >
                                 <option value="1">1 ярус</option>
@@ -383,20 +384,6 @@ export function CustomCakeForm({
                     </div>
 
                     <div className="form-grid">
-                        <div>
-                            <label htmlFor="pickup">Дата и время получения</label>
-
-                            <input
-                                id="pickup"
-                                type="datetime-local"
-                                min={minPickup}
-                                value={pickup}
-                                onChange={(e) =>
-                                    setState((prev) => ({ ...prev, pickup: e.target.value }))
-                                }
-                            />
-                        </div>
-
                         <div className="form-row-full">
                             <label htmlFor="comment">
                                 Дополнительные пожелания

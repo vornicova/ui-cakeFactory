@@ -42,6 +42,11 @@ export function CakePreview({
         [flavour?.imageUrl, imageBase]
     );
 
+    const designPreviewSrc = useMemo(
+        () => getImageSrc(activeDesignSource?.imageUrl, imageBase),
+        [activeDesignSource?.imageUrl, imageBase]
+    );
+
     return (
         <aside className="card cake-preview-card modern-preview">
             <div className="cake-preview-top">
@@ -76,6 +81,33 @@ export function CakePreview({
                     )}
                 </div>
             </div>
+
+            {designPreviewSrc && (
+                <div className="selected-design-preview-block">
+                    <div className="selected-design-preview-head">
+                        <div>
+                            <span className="label">Выбранный референс</span>
+                            <div className="selected-design-title">
+                                {activeDesignSource?.name || "Дизайн из каталога"}
+                            </div>
+                        </div>
+
+                        {activeDesignSource?.code && (
+                            <span className="selected-design-code">
+                    #{activeDesignSource.code}
+                </span>
+                        )}
+                    </div>
+
+                    <div className="selected-design-preview-image-wrap">
+                        <img
+                            src={designPreviewSrc}
+                            alt={activeDesignSource?.name || "Выбранный дизайн"}
+                            className="selected-design-preview-image"
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className="preview-info-grid compact-grid">
                 <div className="preview-info-card">
@@ -119,6 +151,13 @@ export function CakePreview({
                     <div className="preview-feature-row">
                         <span className="label">Выбранный дизайн</span>
                         <div>{activeDesignSource.name}</div>
+                    </div>
+                )}
+
+                {activeDesignSource?.code && (
+                    <div className="preview-feature-row">
+                        <span className="label">Код дизайна</span>
+                        <div>{activeDesignSource.code}</div>
                     </div>
                 )}
             </div>

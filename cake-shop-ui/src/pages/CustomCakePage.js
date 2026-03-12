@@ -43,6 +43,8 @@ const CustomCakePage = () => {
     const selectedDesign = useSelectedCakeDesign();
 
     const [customProduct, setCustomProduct] = useState(null);
+    const [status, setStatus] = useState("");
+    const [statusType, setStatusType] = useState("");
 
     const [form, setForm] = useState(() => ({
         shape: "Круглый",
@@ -55,7 +57,6 @@ const CustomCakePage = () => {
         selectedFlavourId: FLAVOURS[0]?.id ?? null,
 
         decor: "Минималистичный",
-        pickup: "",
         inscription: "",
         extraComment: "",
 
@@ -70,9 +71,6 @@ const CustomCakePage = () => {
         aiDesignImage: null,
         aiDesignStatus: "idle",
     }));
-
-    const [status, setStatus] = useState("");
-    const [statusType, setStatusType] = useState("");
 
     const recommendedWeight = useMemo(
         () => calculateRecommendedWeightByGuests(form.servings),
@@ -156,15 +154,28 @@ const CustomCakePage = () => {
         return form.size || recommendedSize;
     }, [form.size, recommendedSize]);
 
+    const designExtraPrice = useMemo(() => {
+        return Number(form.selectedDesign?.decorPrice || 0);
+    }, [form.selectedDesign?.decorPrice]);
+
     const estimatedPrice = useMemo(() => {
-        return calculateEstimatedPrice({
+        const basePrice = calculateEstimatedPrice({
             customProduct,
             weightKg,
             layers: form.layers,
             decor: form.decor,
             flavourId: currentFlavour?.id,
         });
-    }, [customProduct, weightKg, form.layers, form.decor, currentFlavour?.id]);
+
+        return Number(basePrice || 0) + designExtraPrice;
+    }, [
+        customProduct,
+        weightKg,
+        form.layers,
+        form.decor,
+        currentFlavour?.id,
+        designExtraPrice,
+    ]);
 
     const activeDesignSource = useMemo(() => {
         if (form.aiDesignImage) {
@@ -181,6 +192,7 @@ const CustomCakePage = () => {
                 name: form.selectedDesign.name,
                 imageUrl: form.selectedDesign.imageUrl,
                 code: form.selectedDesign.code,
+                decorPrice: form.selectedDesign.decorPrice,
             };
         }
 
@@ -195,7 +207,6 @@ const CustomCakePage = () => {
         return null;
     }, [form.aiDesignImage, form.selectedDesign, form.decorPreview]);
 
-    const minPickup = useMemo(() => new Date().toISOString().slice(0, 16), []);
     const year = new Date().getFullYear();
 
     const handleDecorFileChange = (e) => {
@@ -220,6 +231,7 @@ const CustomCakePage = () => {
                     src: ev.target?.result,
                     name: file.name,
                 },
+                selectedDesign: null,
                 aiDesignImage: null,
                 aiDesignStatus: "idle",
             }));
@@ -245,18 +257,12 @@ const CustomCakePage = () => {
             return;
         }
 
-        if (!form.pickup) {
-            setStatus("Пожалуйста, выберите дату и время получения торта.");
-            setStatusType("err");
-            return;
-        }
-
         const cartItem = {
             id: `custom-${Date.now()}`,
             productId: customProduct.id,
             name: "Custom Cake",
             price: estimatedPrice ?? 0,
-            quantity: weightKg,
+            quantity: 1,
             type: "CUSTOM_CAKE",
             customData: {
                 shape: form.shape,
@@ -273,7 +279,6 @@ const CustomCakePage = () => {
 
                 decor: form.decor,
                 inscription: form.inscription,
-                pickup: form.pickup,
                 comment: form.extraComment,
                 decorFileName: form.decorFileName,
 
@@ -281,6 +286,7 @@ const CustomCakePage = () => {
                 designName: form.selectedDesign?.name ?? null,
                 designCode: form.selectedDesign?.code ?? null,
                 designImageUrl: form.selectedDesign?.imageUrl ?? null,
+                designDecorPrice: Number(form.selectedDesign?.decorPrice || 0),
 
                 useAiDesign: form.useAiDesign,
                 aiDesignPrompt: form.aiDesignPrompt,
@@ -314,7 +320,6 @@ const CustomCakePage = () => {
                     imageBase={IMAGE_BASE}
                     state={form}
                     setState={setForm}
-                    minPickup={minPickup}
                     onDecorFileChange={handleDecorFileChange}
                     onAddToCart={handleAddToCart}
                     status={status}

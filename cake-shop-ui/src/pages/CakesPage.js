@@ -68,18 +68,23 @@ const CakesPage = () => {
     }, [designs, activeDesign]);
 
     const handleSelectDesign = (design) => {
+        const selectedDesign = {
+            id: design.id,
+            code: design.code,
+            name: design.name,
+            description: design.description,
+            imageUrl: design.imageUrl,
+            designCategory: design.designCategory,
+            decorPrice: design.decorPrice,
+            shape: design.shape,
+            decor: design.decor,
+            layers: design.layers,
+        };
+
+        localStorage.setItem("selectedCakeDesign", JSON.stringify(selectedDesign));
+
         navigate("/custom-cake", {
-            state: {
-                selectedDesign: {
-                    id: design.id,
-                    code: design.code,
-                    name: design.name,
-                    description: design.description,
-                    imageUrl: design.imageUrl,
-                    designCategory: design.designCategory,
-                    decorPrice: design.decorPrice,
-                },
-            },
+            state: { selectedDesign },
         });
     };
 
