@@ -1,20 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerCustomer, loginCustomer, getMe } from "../api/api";
 
 const TOKENS_KEY = "authTokens";
 const PROFILE_KEY = "currentUserProfile";
-
-function safeReadJson(key) {
-    try {
-        const raw = localStorage.getItem(key);
-        if (!raw) return null;
-        return JSON.parse(raw);
-    } catch (e) {
-        console.warn(`Cannot parse ${key}`, e);
-        return null;
-    }
-}
 
 function safeWriteJson(key, value) {
     try {
@@ -29,24 +18,15 @@ function isValidEmail(value) {
 }
 
 function AuthPage() {
-    const [mode, setMode] = useState("login"); // "login" | "register"
+    const [mode, setMode] = useState("login");
     const isLogin = useMemo(() => mode === "login", [mode]);
 
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
     const [error, setError] = useState("");
 
     const navigate = useNavigate();
-
-    // если уже авторизован → сразу в личный кабинет
-    useEffect(() => {
-        const tokens = safeReadJson(TOKENS_KEY);
-        if (tokens?.accessToken) {
-            navigate("/account", { replace: true });
-        }
-    }, [navigate]);
 
     const switchToLogin = () => {
         setMode("login");
@@ -72,32 +52,49 @@ function AuthPage() {
             setError("Заполните e-mail и пароль.");
             return;
         }
+
         if (!isValidEmail(emailValue)) {
             setError("Введите корректный e-mail.");
             return;
         }
+
         if (!isLogin && !fullNameValue) {
             setError("Заполните имя.");
             return;
         }
 
         try {
-            // 1) получаем токены
-            const tokens = isLogin
-                ? await loginCustomer({ email: emailValue, password: passwordValue })
-                : await registerCustomer({
-                    email: emailValue,
+            let tokens;
+
+            if (isLogin) {
+                tokens = await loginCustomer({
+                    username: emailValue,
                     password: passwordValue,
-                    fullName: fullNameValue,
+                });
+            } else {
+                await registerCustomer({
+                    username: emailValue,
+                    password: passwordValue,
                 });
 
-            safeWriteJson(TOKENS_KEY, tokens);
+                tokens = await loginCustomer({
+                    username: emailValue,
+                    password: passwordValue,
+                });
+            }
 
-            // 2) получаем профиль
-            const me = await getMe(tokens.accessToken);
+            const token = tokens?.token || tokens?.accessToken;
+
+            if (!token) {
+                throw new Error("Сервер не вернул токен авторизации.");
+            }
+
+            safeWriteJson(TOKENS_KEY, {
+                accessToken: token,
+            });
+            const me = await getMe(token);
             safeWriteJson(PROFILE_KEY, me);
 
-            // 3) обновляем UI
             window.dispatchEvent(new Event("user:updated"));
             navigate("/account", { replace: true });
         } catch (err) {
@@ -174,15 +171,15 @@ function AuthPage() {
                         <>
                             Нет аккаунта?{" "}
                             <span className="auth-link" onClick={switchToRegister}>
-                Зарегистрироваться
-              </span>
+                                Зарегистрироваться
+                            </span>
                         </>
                     ) : (
                         <>
                             Уже есть аккаунт?{" "}
                             <span className="auth-link" onClick={switchToLogin}>
-                Войти
-              </span>
+                                Войти
+                            </span>
                         </>
                     )}
                 </div>

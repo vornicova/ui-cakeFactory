@@ -27,14 +27,20 @@ const AccountPage = () => {
     }, [loadCartCount]);
 
     useEffect(() => {
-        if (!user?.id) return;
+        if (user?.role === "ADMIN") {
+            navigate("/admin");
+        }
+    }, [user?.role, navigate]);
+
+    useEffect(() => {
+        if (!user?.id || user?.role === "ADMIN") return;
 
         const load = async () => {
             setOrdersLoading(true);
             setOrdersError("");
             try {
                 const data = await fetchOrders(user.id);
-                setOrders(data);
+                setOrders(Array.isArray(data) ? data : []);
             } catch (e) {
                 setOrdersError(e?.message || "Не удалось загрузить заказы.");
             } finally {
@@ -45,7 +51,7 @@ const AccountPage = () => {
             setNotifsError("");
             try {
                 const data = await fetchNotifications(user.id);
-                setNotifs(data);
+                setNotifs(Array.isArray(data) ? data : []);
             } catch (e) {
                 setNotifsError(e?.message || "Не удалось загрузить уведомления.");
             } finally {
@@ -54,7 +60,7 @@ const AccountPage = () => {
         };
 
         load();
-    }, [user?.id]);
+    }, [user?.id, user?.role]);
 
     const handleLogout = () => {
         logout();

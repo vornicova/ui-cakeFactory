@@ -1,8 +1,6 @@
-// src/pages/AdminPage.js
 import React, {useEffect, useState} from "react";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 
-import Navbar from "../components/Navbar";
 import OrdersList from "../components/admin/tabs/OrdersList";
 import ProductsList from "../components/admin/tabs/ProductsList";
 import CustomersList from "../components/admin/tabs/CustomersList";
@@ -14,20 +12,32 @@ import {
     apiSend,
     ORDERS_URL,
     PRODUCTS_URL,
-    CUSTOMERS_URL,
+    USERS_URL,
     PAYMENTS_URL,
     NOTIFICATIONS_URL,
+    AUTH_API,
 } from "../api/api";
 
 const AdminPage = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("orders");
 
     const [cartCount, setCartCount] = useState(0);
-    const [adminName, setAdminName] = useState("Admin");
+    const [adminName, setAdminName] = useState("ADMIN");
+
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [ordersError, setOrdersError] = useState("");
     const [ordersFilterStatus, setOrdersFilterStatus] = useState("");
+    const handleLogout = () => {
+        localStorage.removeItem("authTokens");
+        localStorage.removeItem("token");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        sessionStorage.clear();
+        navigate("/auth");
+        setAdminName(null);
+    };
     const loadOrders = async (status = "") => {
         setOrdersLoading(true);
         setOrdersError("");
@@ -49,11 +59,8 @@ const AdminPage = () => {
     const changeOrderStatus = async (orderId, newStatus) => {
         if (!orderId || !newStatus) return;
         try {
-
             await apiSend(
-                `${ORDERS_URL}/${encodeURIComponent(orderId)}/status?status=${encodeURIComponent(
-                    newStatus
-                )}`,
+                `${ORDERS_URL}/${encodeURIComponent(orderId)}/status?status=${encodeURIComponent(newStatus)}`,
                 {method: "PATCH"}
             );
             await loadOrders(ordersFilterStatus);
@@ -106,7 +113,6 @@ const AdminPage = () => {
         }
     };
 
-    // -------- CUSTOMERS --------
     const [customers, setCustomers] = useState([]);
     const [customersLoading, setCustomersLoading] = useState(false);
     const [customersError, setCustomersError] = useState("");
@@ -115,7 +121,7 @@ const AdminPage = () => {
         setCustomersLoading(true);
         setCustomersError("");
         try {
-            const data = await apiGet(CUSTOMERS_URL);
+            const data = await apiGet(USERS_URL);
             setCustomers(Array.isArray(data) ? data : []);
         } catch (e) {
             setCustomersError(e?.message || "Не удалось загрузить клиентов");
@@ -126,7 +132,7 @@ const AdminPage = () => {
 
     const registerCustomer = async (payload) => {
         try {
-            await apiSend(`${CUSTOMERS_URL}/register`, {
+            await apiSend(`${AUTH_API}/register`, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(payload),
@@ -137,7 +143,6 @@ const AdminPage = () => {
         }
     };
 
-    // -------- PAYMENTS --------
     const [payments, setPayments] = useState([]);
     const [paymentsLoading, setPaymentsLoading] = useState(false);
     const [paymentsError, setPaymentsError] = useState("");
@@ -190,7 +195,6 @@ const AdminPage = () => {
         }
     };
 
-    // -------- NOTIFICATIONS --------
     const [notifications, setNotifications] = useState([]);
     const [notificationsLoading, setNotificationsLoading] = useState(false);
     const [notificationsError, setNotificationsError] = useState("");
@@ -208,11 +212,13 @@ const AdminPage = () => {
         }
     };
 
-    // -------- COMMON --------
     const loadCartCount = () => {
         try {
             const raw = localStorage.getItem("cartItems");
-            if (!raw) return setCartCount(0);
+            if (!raw) {
+                setCartCount(0);
+                return;
+            }
             const items = JSON.parse(raw);
             const count = items.reduce((sum, it) => sum + (it.quantity || 0), 0);
             setCartCount(count);
@@ -226,7 +232,7 @@ const AdminPage = () => {
             const raw = localStorage.getItem("currentCustomer");
             if (!raw) return;
             const u = JSON.parse(raw);
-            setAdminName(u?.name || "Admin");
+            setAdminName(u?.name || u?.username || "ADMIN");
         } catch {
             // ignore
         }
@@ -259,30 +265,30 @@ const AdminPage = () => {
         loadCartCount();
         loadAdminName();
         loadOrders("");
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const year = new Date().getFullYear();
 
     return (
         <div className="cart-page">
-            <Navbar cartCount={cartCount}/>
-
             <div className="page">
                 <header className="admin-header">
                     <div className="admin-logo">CAKEFACTORY · Admin</div>
-
                     <div className="admin-header-right">
-            <span className="small">
-              Logged in as <b>{adminName}</b>
-            </span>
+    <span className="small">
+        Logged in as <b>{adminName}</b>
+    </span>
+
                         <Link to="/" className="btn-ghost">
                             Back to site
                         </Link>
+
+                        <button type="button" className="btn-ghost" onClick={handleLogout}>
+                            Logout
+                        </button>
                     </div>
                 </header>
 
-                {/* tabs */}
                 <div className="admin-tabs">
                     {[
                         ["orders", "Orders"],
@@ -302,7 +308,6 @@ const AdminPage = () => {
                     ))}
                 </div>
 
-                {/* content */}
                 {activeTab === "orders" && (
                     <OrdersList
                         orders={orders}

@@ -1,10 +1,31 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS } from "../api/config";
 
-const API_BASE = "/api";
-const ORDERS_URL = API_BASE + "/orders";
-const PAYMENTS_URL = API_BASE + "/payments";
+const ORDERS_URL = API_ENDPOINTS.orders;
+const PAYMENTS_URL = API_ENDPOINTS.payments;
 const IMAGE_BASE = "http://localhost:8081";
+
+function readJsonFromLocalStorage(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+    } catch (error) {
+        console.error(`Ошибка чтения ${key} из localStorage`, error);
+        return fallback;
+    }
+}
+
+function normalizeCartItem(item) {
+    return {
+        productId: item.productId ?? item.id,
+        productName: item.productName ?? item.name ?? "",
+        unitPrice: Number(item.unitPrice ?? item.price ?? 0),
+        quantity: Number(item.quantity ?? 0),
+        imageUrl: item.imageUrl ?? null,
+        category: item.category ?? "",
+    };
+}
 
 const CartPage = () => {
     const navigate = useNavigate();
@@ -13,59 +34,56 @@ const CartPage = () => {
     const [pickupTime, setPickupTime] = useState("");
     const [comment, setComment] = useState("");
     const [status, setStatus] = useState("");
-    const [statusType, setStatusType] = useState(""); // ok | err | ""
+    const [statusType, setStatusType] = useState("");
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        try {
-            const raw = localStorage.getItem("cartItems");
-            setItems(raw ? JSON.parse(raw) : []);
-        } catch (e) {
-            console.error("Ошибка чтения cartItems из localStorage", e);
-            setItems([]);
-        }
+        const rawItems = readJsonFromLocalStorage("cartItems", []);
+        setItems(Array.isArray(rawItems) ? rawItems.map(normalizeCartItem) : []);
     }, []);
 
     const total = useMemo(() => {
-        return items.reduce(
-            (sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 0),
-            0
-        );
+        return items.reduce((sum, item) => {
+            return sum + item.unitPrice * item.quantity;
+        }, 0);
     }, [items]);
 
     const itemsCount = useMemo(() => {
-        return items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+        return items.reduce((sum, item) => sum + item.quantity, 0);
     }, [items]);
 
     const persistItems = (newItems) => {
-        setItems(newItems);
-        localStorage.setItem("cartItems", JSON.stringify(newItems));
-        window.dispatchEvent(new Event("cart:updated")); // ✅ синхронизация Navbar
+        const normalized = newItems.map(normalizeCartItem);
+        setItems(normalized);
+        localStorage.setItem("cartItems", JSON.stringify(normalized));
+        window.dispatchEvent(new Event("cart:updated"));
     };
 
-    const handleInc = (id) => {
-        const updated = items.map((it) =>
-            String(it.id) === String(id)
-                ? { ...it, quantity: (Number(it.quantity) || 0) + 1 }
-                : it
+    const handleInc = (productId) => {
+        const updated = items.map((item) =>
+            String(item.productId) === String(productId)
+                ? { ...item, quantity: item.quantity + 1 }
+                : item
         );
         persistItems(updated);
     };
 
-    const handleDec = (id) => {
+    const handleDec = (productId) => {
         const updated = items
-            .map((it) =>
-                String(it.id) === String(id)
-                    ? { ...it, quantity: (Number(it.quantity) || 0) - 1 }
-                    : it
+            .map((item) =>
+                String(item.productId) === String(productId)
+                    ? { ...item, quantity: item.quantity - 1 }
+                    : item
             )
-            .filter((it) => (Number(it.quantity) || 0) > 0);
+            .filter((item) => item.quantity > 0);
 
         persistItems(updated);
     };
 
-    const handleRemove = (id) => {
-        const updated = items.filter((it) => String(it.id) !== String(id));
+    const handleRemove = (productId) => {
+        const updated = items.filter(
+            (item) => String(item.productId) !== String(productId)
+        );
         persistItems(updated);
     };
 
@@ -73,6 +91,18 @@ const CartPage = () => {
         setStatus("");
         setStatusType("");
     };
+
+    const buildOrderPayload = (customer) => ({
+        userId: customer.id,
+        pickupTime: pickupTime ? `${pickupTime}:00` : null,
+        comment: comment || "",
+        items: items.map((item) => ({
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+        })),
+    });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -84,54 +114,38 @@ const CartPage = () => {
             return;
         }
 
-        const rawUser = localStorage.getItem("currentCustomer");
-        if (!rawUser) {
+        const customer = readJsonFromLocalStorage("currentUserProfile", null);
+
+        if (!customer?.id) {
             setStatus("Сначала войдите в аккаунт.");
             setStatusType("err");
             setTimeout(() => navigate("/account"), 600);
             return;
         }
 
-        let customer;
-        try {
-            customer = JSON.parse(rawUser);
-        } catch (err) {
-            console.error(err);
-            setStatus("Ошибка чтения профиля. Войдите ещё раз.");
-            setStatusType("err");
-            localStorage.removeItem("currentCustomer");
-            return;
-        }
-
-        const payload = {
-            userId: customer.id,
-            pickupTime: pickupTime || null,
-            comment: comment || "",
-            items: items.map((it) => ({
-                productId: it.id,
-                productName: it.name,
-                unitPrice: it.price,
-                quantity: it.quantity,
-            })),
-        };
+        const payload = buildOrderPayload(customer);
+        console.log("order payload", JSON.stringify(payload, null, 2));
 
         setLoading(true);
 
         try {
-            // 1) create order
             const orderResp = await fetch(ORDERS_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify(payload),
             });
 
             if (!orderResp.ok) {
-                throw new Error(`Ошибка оформления заказа (${orderResp.status})`);
+                const errorText = await orderResp.text();
+                throw new Error(
+                    errorText || `Ошибка оформления заказа (${orderResp.status})`
+                );
             }
 
             const order = await orderResp.json();
 
-            // 2) create payment (best-effort)
             const paymentPayload = {
                 orderId: order.id,
                 amount: total,
@@ -143,7 +157,9 @@ const CartPage = () => {
             try {
                 const payResp = await fetch(PAYMENTS_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
                     body: JSON.stringify(paymentPayload),
                 });
 
@@ -153,24 +169,23 @@ const CartPage = () => {
 
                 const payment = await payResp.json();
                 paymentStatusText = ` Платёж #${payment.id} · статус: ${payment.status || "создан"}.`;
-            } catch (payErr) {
-                console.error(payErr);
+            } catch (paymentError) {
+                console.error("Ошибка payment-service:", paymentError);
                 paymentStatusText =
                     " Платёж пока не создан — попробуйте оплатить позже в личном кабинете.";
             }
 
-            // clear cart
             persistItems([]);
             setPickupTime("");
             setComment("");
 
-            setStatus(`Заказ #${order.id} успешно создан!` + paymentStatusText);
+            setStatus(`Заказ #${order.id} успешно создан!${paymentStatusText}`);
             setStatusType("ok");
 
             setTimeout(() => navigate("/account"), 1200);
-        } catch (err) {
-            console.error(err);
-            setStatus(err?.message || "Не удалось оформить заказ.");
+        } catch (error) {
+            console.error("Ошибка создания заказа:", error);
+            setStatus(error.message || "Не удалось оформить заказ.");
             setStatusType("err");
         } finally {
             setLoading(false);
@@ -179,11 +194,12 @@ const CartPage = () => {
 
     return (
         <div className="layout">
-            {/* Left: cart items */}
             <section className="card">
                 <div className="card-title">
                     <h1>Корзина</h1>
-                    <span className="small">{itemsCount ? `${itemsCount} шт.` : "пуста"}</span>
+                    <span className="small">
+                        {itemsCount ? `${itemsCount} шт.` : "пуста"}
+                    </span>
                 </div>
 
                 <p className="small" style={{ marginTop: 6 }}>
@@ -198,30 +214,31 @@ const CartPage = () => {
                     )}
 
                     {items.map((item) => {
-                        const lineTotal =
-                            (Number(item.price) || 0) * (Number(item.quantity) || 0);
+                        const lineTotal = item.unitPrice * item.quantity;
 
                         const imgUrl =
                             item.imageUrl && String(item.imageUrl).trim()
-                                ? (String(item.imageUrl).startsWith("http")
+                                ? String(item.imageUrl).startsWith("http")
                                     ? item.imageUrl
-                                    : `${IMAGE_BASE}${item.imageUrl}`)
+                                    : `${IMAGE_BASE}${item.imageUrl}`
                                 : null;
 
                         return (
-                            <div className="cart-item" key={item.id}>
+                            <div className="cart-item" key={item.productId}>
                                 <div className="cart-item-image">
-                                    {imgUrl ? <img src={imgUrl} alt={item.name} /> : null}
+                                    {imgUrl ? (
+                                        <img src={imgUrl} alt={item.productName} />
+                                    ) : null}
                                 </div>
 
                                 <div>
-                                    <div className="cart-item-name">{item.name}</div>
-                                    <div className="cart-item-meta">{item.category || ""}</div>
+                                    <div className="cart-item-name">{item.productName}</div>
+                                    <div className="cart-item-meta">{item.category}</div>
 
                                     <button
                                         type="button"
                                         className="cart-remove"
-                                        onClick={() => handleRemove(item.id)}
+                                        onClick={() => handleRemove(item.productId)}
                                     >
                                         Удалить
                                     </button>
@@ -231,11 +248,17 @@ const CartPage = () => {
                                     <div>{lineTotal.toFixed(2)} MDL</div>
 
                                     <div className="cart-qty-controls">
-                                        <button type="button" onClick={() => handleDec(item.id)}>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDec(item.productId)}
+                                        >
                                             -
                                         </button>
                                         <span>{item.quantity}</span>
-                                        <button type="button" onClick={() => handleInc(item.id)}>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleInc(item.productId)}
+                                        >
                                             +
                                         </button>
                                     </div>
@@ -251,7 +274,6 @@ const CartPage = () => {
                 </div>
             </section>
 
-            {/* Right: checkout */}
             <section className="card">
                 <h2>Оформление заказа</h2>
                 <p className="small">
