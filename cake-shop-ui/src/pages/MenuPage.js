@@ -1,13 +1,9 @@
 // src/pages/MenuPage.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../styles/menuFiltres.css";
+import { PRODUCTS_URL, CATEGORIES_URL } from "../api/api";
 
-
-const API_BASE = "/api";
-const PRODUCTS_URL = `${API_BASE}/products`;
-const CATEGORIES_URL = `${API_BASE}/categories`;
 const IMAGE_BASE = "http://localhost:8081";
-
 const ALL_CATEGORY = "ALL";
 
 const HIDDEN_CATEGORY_KEYS = [

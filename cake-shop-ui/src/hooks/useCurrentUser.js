@@ -1,5 +1,4 @@
-// src/hooks/useCurrentUser.js
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const TOKENS_KEY = "authTokens";
 const PROFILE_KEY = "currentUserProfile";
@@ -16,31 +15,66 @@ function safeReadJson(key) {
 
 export const useCurrentUser = () => {
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    const load = () => {
+    const load = useCallback(async () => {
         const tokens = safeReadJson(TOKENS_KEY);
-        if (!tokens?.accessToken) {
+        const accessToken = tokens?.accessToken || tokens?.token;
+
+        if (!accessToken) {
             setUser(null);
+            setLoading(false);
             return;
         }
 
-        const profile = safeReadJson(PROFILE_KEY) || {};
-        setUser({ ...profile, ...tokens });
-    };
+        const profile = safeReadJson(PROFILE_KEY);
+
+        if (profile?.id) {
+            setUser({ ...profile, accessToken });
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/auth/me", {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to load profile: ${response.status}`);
+            }
+
+            const me = await response.json();
+
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(me));
+            setUser({ ...me, accessToken });
+        } catch (error) {
+            console.error("Failed to load current user profile:", error);
+            setUser({ accessToken });
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         load();
         const handler = () => load();
         window.addEventListener("user:updated", handler);
         return () => window.removeEventListener("user:updated", handler);
-    }, []);
+    }, [load]);
 
     const logout = () => {
-        localStorage.removeItem(TOKENS_KEY);
-        localStorage.removeItem(PROFILE_KEY);
+        localStorage.removeItem("currentCustomer");
+        localStorage.removeItem("token");
+
         setUser(null);
         window.dispatchEvent(new Event("user:updated"));
     };
 
-    return { user, logout };
+
+    return { user, logout, loading, reloadUser: load };
 };

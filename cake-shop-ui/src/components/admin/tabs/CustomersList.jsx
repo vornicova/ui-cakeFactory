@@ -22,7 +22,7 @@ const CustomersList = ({ customers, loading, error }) => {
                 <tr key={customer.id}>
 
                     <td>{customer.id}</td>
-                    <td>{customer.name}</td>
+                    <td>{customer.fullName}</td>
                     <td>{customer.email}</td>
                     <td>{customer.phone}</td>
 
