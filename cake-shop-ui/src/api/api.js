@@ -13,47 +13,105 @@ export const USERS_URL = `${API_BASE}/users`;
 export const AUTH_API = `${API_BASE}/auth`;
 export const NOTIFICATIONS_URL = `${API_BASE}/notifications`;
 
-// ================= GENERIC HELPERS =================
-export const apiGet = async (url, options = {}) => {
-    const res = await fetch(url, {
-        method: "GET",
-        ...options,
-    });
-
-    const text = await res.text().catch(() => "");
-
-    if (!res.ok) {
-        throw new Error(text || `GET ${url} failed (${res.status})`);
-    }
-
-    if (!text) return null;
-
-    try {
-        return JSON.parse(text);
-    } catch {
-        return text;
-    }
+// ================= AUTH HELPERS =================
+const getStoredToken = () => {
+    return (
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("jwt") ||
+        ""
+    );
 };
 
-export const apiSend = async (url, options = {}) => {
-    try {
-        const res = await fetch(url, options);
+const buildHeaders = (customHeaders = {}, body = null) => {
+    const token = getStoredToken();
+    const isFormData = body instanceof FormData;
 
-        const text = await res.text().catch(() => "");
+    const headers = {
+        ...customHeaders,
+    };
 
-        if (!res.ok) {
-            throw new Error(
-                text || `${options?.method || "POST"} ${url} failed (${res.status})`
-            );
-        }
+    if (token && !headers.Authorization) {
+        headers.Authorization = `Bearer ${token}`;
+    }
 
-        if (!text) return null;
+    if (!isFormData && body != null && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+    }
 
+    if (isFormData && headers["Content-Type"]) {
+        delete headers["Content-Type"];
+    }
+
+    return headers;
+};
+
+const parseResponse = async (res) => {
+    if (res.status === 204) {
+        return null;
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    const text = await res.text().catch(() => "");
+
+    if (!text) {
+        return null;
+    }
+
+    if (contentType.includes("application/json")) {
         try {
             return JSON.parse(text);
         } catch {
             return text;
         }
+    }
+
+    return text;
+};
+
+// ================= GENERIC HELPERS =================
+export const apiGet = async (url, options = {}) => {
+    const headers = buildHeaders(options.headers);
+
+    const res = await fetch(url, {
+        method: "GET",
+        ...options,
+        headers,
+    });
+
+    const data = await parseResponse(res);
+
+    if (!res.ok) {
+        throw new Error(
+            typeof data === "string"
+                ? data
+                : `GET ${url} failed (${res.status})`
+        );
+    }
+
+    return data;
+};
+
+export const apiSend = async (url, options = {}) => {
+    try {
+        const headers = buildHeaders(options.headers, options.body);
+
+        const res = await fetch(url, {
+            ...options,
+            headers,
+        });
+
+        const data = await parseResponse(res);
+
+        if (!res.ok) {
+            throw new Error(
+                typeof data === "string"
+                    ? data
+                    : `${options?.method || "POST"} ${url} failed (${res.status})`
+            );
+        }
+
+        return data;
     } catch (e) {
         throw new Error(
             `Failed to fetch: ${options?.method || "POST"} ${url}. ${e?.message || ""}`.trim()
@@ -67,7 +125,7 @@ export async function getProducts() {
 }
 
 export async function getProductById(id) {
-    return apiGet(`${PRODUCTS_URL}/${id}`);
+    return apiGet(`${PRODUCTS_URL}/${encodeURIComponent(id)}`);
 }
 
 export async function getCategories() {
@@ -78,13 +136,81 @@ export async function getCakeDesigns() {
     return apiGet(CAKE_DESIGNS_URL);
 }
 
+// ================= PRODUCTS ADMIN =================
+export async function createProduct(payload) {
+    const isFormData = payload instanceof FormData;
+
+    return apiSend(PRODUCTS_URL, {
+        method: "POST",
+        body: isFormData ? payload : JSON.stringify(payload),
+    });
+}
+
+export async function updateProduct(id, payload) {
+    const isFormData = payload instanceof FormData;
+
+    return apiSend(`${PRODUCTS_URL}/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: isFormData ? payload : JSON.stringify(payload),
+    });
+}
+
+export async function deleteProduct(id) {
+    return apiSend(`${PRODUCTS_URL}/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+    });
+}
+
+// ================= CAKE DESIGNS ADMIN =================
+export async function createCakeDesign(payload) {
+    const isFormData = payload instanceof FormData;
+
+    return apiSend(CAKE_DESIGNS_URL, {
+        method: "POST",
+        body: isFormData ? payload : JSON.stringify(payload),
+    });
+}
+
+export async function updateCakeDesign(id, payload) {
+    const isFormData = payload instanceof FormData;
+
+    return apiSend(`${CAKE_DESIGNS_URL}/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: isFormData ? payload : JSON.stringify(payload),
+    });
+}
+
+export async function deleteCakeDesign(id) {
+    return apiSend(`${CAKE_DESIGNS_URL}/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+    });
+}
+
+// ================= CATEGORIES ADMIN =================
+export async function createCategory(payload) {
+    return apiSend(CATEGORIES_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function updateCategory(id, payload) {
+    return apiSend(`${CATEGORIES_URL}/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function deleteCategory(id) {
+    return apiSend(`${CATEGORIES_URL}/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+    });
+}
+
 // ================= ORDERS =================
 export async function createOrder(order) {
     return apiSend(ORDERS_URL, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
         body: JSON.stringify(order),
     });
 }
@@ -93,9 +219,6 @@ export async function createOrder(order) {
 export async function createPayment(payment) {
     return apiSend(PAYMENTS_URL, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
         body: JSON.stringify(payment),
     });
 }
@@ -104,9 +227,6 @@ export async function createPayment(payment) {
 export async function registerCustomer(payload) {
     return apiSend(`${AUTH_API}/register`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
         body: JSON.stringify(payload),
     });
 }
@@ -114,26 +234,17 @@ export async function registerCustomer(payload) {
 export async function loginCustomer(payload) {
     return apiSend(`${AUTH_API}/login`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
         body: JSON.stringify(payload),
     });
 }
 
 // ================= USERS =================
 export async function getMe(token) {
-    const response = await fetch("/api/auth/me", {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
+    return apiGet(`${AUTH_API}/me`, {
+        headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+            }
+            : {},
     });
-
-    if (!response.ok) {
-        throw new Error("Не удалось получить профиль пользователя.");
-    }
-
-    return response.json();
 }

@@ -12,6 +12,10 @@ export const CustomerForm = ({form, onChange, onSubmit}) => (
                    required/>
         </div>
         <div>
+            <label>UserName</label>
+            <input className="input" value={form.fullName} onChange={e => onChange("fullName", e.target.value)}/>
+        </div>
+        <div>
             <label>Phone</label>
             <input className="input" value={form.phone} onChange={e => onChange("phone", e.target.value)}/>
         </div>
