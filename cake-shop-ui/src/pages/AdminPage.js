@@ -1,8 +1,10 @@
-import React, {useEffect, useState} from "react";
-import {Link, useNavigate} from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import OrdersList from "../components/admin/tabs/OrdersList";
 import ProductsList from "../components/admin/tabs/ProductsList";
+import CakeDesignsList from "../components/admin/tabs/CakeDesignsList";
+import CategoriesList from "../components/admin/tabs/CategoriesList";
 import CustomersList from "../components/admin/tabs/CustomersList";
 import PaymentsList from "../components/admin/tabs/PaymentsList";
 import NotificationsList from "../components/admin/tabs/NotificationsList";
@@ -12,32 +14,70 @@ import {
     apiSend,
     ORDERS_URL,
     PRODUCTS_URL,
+    CAKE_DESIGNS_URL,
+    CATEGORIES_URL,
     USERS_URL,
     PAYMENTS_URL,
     NOTIFICATIONS_URL,
-    AUTH_API,
 } from "../api/api";
+
+import "../styles/admin.css";
 
 const AdminPage = () => {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState("orders");
 
-    const [cartCount, setCartCount] = useState(0);
+    const [activeTab, setActiveTab] = useState("orders");
     const [adminName, setAdminName] = useState("ADMIN");
 
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [ordersError, setOrdersError] = useState("");
     const [ordersFilterStatus, setOrdersFilterStatus] = useState("");
+
+    const [products, setProducts] = useState([]);
+    const [productsLoading, setProductsLoading] = useState(false);
+    const [productsError, setProductsError] = useState("");
+
+    const [cakeDesigns, setCakeDesigns] = useState([]);
+    const [cakeDesignsLoading, setCakeDesignsLoading] = useState(false);
+    const [cakeDesignsError, setCakeDesignsError] = useState("");
+
+    const [categories, setCategories] = useState([]);
+    const [categoriesLoading, setCategoriesLoading] = useState(false);
+    const [categoriesError, setCategoriesError] = useState("");
+
+    const [customers, setCustomers] = useState([]);
+    const [customersLoading, setCustomersLoading] = useState(false);
+    const [customersError, setCustomersError] = useState("");
+
+    const [payments, setPayments] = useState([]);
+    const [paymentsLoading, setPaymentsLoading] = useState(false);
+    const [paymentsError, setPaymentsError] = useState("");
+
+    const [notifications, setNotifications] = useState([]);
+    const [notificationsLoading, setNotificationsLoading] = useState(false);
+    const [notificationsError, setNotificationsError] = useState("");
+
+    const loadAdminName = () => {
+        try {
+            const raw = localStorage.getItem("currentCustomer");
+            if (!raw) return;
+            const user = JSON.parse(raw);
+            setAdminName(user?.name || user?.username || "ADMIN");
+        } catch {
+            // ignore
+        }
+    };
+
     const handleLogout = () => {
-        localStorage.removeItem("authTokens");
+        localStorage.removeItem("currentCustomer");
         localStorage.removeItem("token");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         sessionStorage.clear();
         navigate("/auth");
-        setAdminName(null);
     };
+
     const loadOrders = async (status = "") => {
         setOrdersLoading(true);
         setOrdersError("");
@@ -57,21 +97,16 @@ const AdminPage = () => {
     };
 
     const changeOrderStatus = async (orderId, newStatus) => {
-        if (!orderId || !newStatus) return;
         try {
             await apiSend(
                 `${ORDERS_URL}/${encodeURIComponent(orderId)}/status?status=${encodeURIComponent(newStatus)}`,
-                {method: "PATCH"}
+                { method: "PATCH" }
             );
             await loadOrders(ordersFilterStatus);
         } catch (e) {
-            alert("Change status error: " + (e?.message || "Unknown error"));
+            alert("Ошибка изменения статуса: " + (e?.message || "Unknown error"));
         }
     };
-
-    const [products, setProducts] = useState([]);
-    const [productsLoading, setProductsLoading] = useState(false);
-    const [productsError, setProductsError] = useState("");
 
     const loadProducts = async () => {
         setProductsLoading(true);
@@ -86,36 +121,184 @@ const AdminPage = () => {
         }
     };
 
+    const buildProductFormData = (payload) => {
+        const formData = new FormData();
+        formData.append("name", payload.name ?? "");
+        formData.append("description", payload.description ?? "");
+        formData.append("price", payload.price ?? "");
+        formData.append("isActive", String(payload.isActive ?? true));
+        formData.append("categoryCode", payload.categoryCode ?? "");
+
+        if (payload.imageFile) {
+            formData.append("image", payload.imageFile);
+        }
+
+        return formData;
+    };
+
     const createProduct = async (payload) => {
         try {
+            const formData = buildProductFormData(payload);
+
             await apiSend(PRODUCTS_URL, {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(payload),
+                body: formData,
             });
+
             await loadProducts();
         } catch (e) {
-            alert("Create product error: " + (e?.message || "Unknown error"));
+            alert("Ошибка создания продукта: " + (e?.message || "Unknown error"));
+        }
+    };
+
+    const updateProduct = async (id, payload) => {
+        try {
+            const formData = buildProductFormData(payload);
+
+            await apiSend(`${PRODUCTS_URL}/${encodeURIComponent(id)}`, {
+                method: "PUT",
+                body: formData,
+            });
+
+            await loadProducts();
+        } catch (e) {
+            alert("Ошибка обновления продукта: " + (e?.message || "Unknown error"));
         }
     };
 
     const deleteProduct = async (id) => {
-        if (!id) return;
         if (!window.confirm(`Удалить продукт #${id}?`)) return;
-
         try {
             await apiSend(`${PRODUCTS_URL}/${encodeURIComponent(id)}`, {
                 method: "DELETE",
             });
             await loadProducts();
         } catch (e) {
-            alert("Delete product error: " + (e?.message || "Unknown error"));
+            alert("Ошибка удаления продукта: " + (e?.message || "Unknown error"));
+        }
+    };
+    const loadCakeDesigns = async () => {
+        setCakeDesignsLoading(true);
+        setCakeDesignsError("");
+
+        try {
+            const data = await apiGet(CAKE_DESIGNS_URL);
+            setCakeDesigns(Array.isArray(data) ? data : []);
+        } catch (e) {
+            setCakeDesignsError(e?.message || "Не удалось загрузить дизайны тортов");
+        } finally {
+            setCakeDesignsLoading(false);
+        }
+    };
+    const buildCakeDesignFormData = (payload) => {
+        const formData = new FormData();
+
+        formData.append("name", payload.name ?? "");
+        formData.append("description", payload.description ?? "");
+        formData.append("designCategory", payload.designCategory ?? "");
+        formData.append("isActive", String(payload.isActive ?? true));
+
+        if (payload.imageFile instanceof File) {
+            formData.append("image", payload.imageFile);
+        }
+
+        return formData;
+    };
+
+    const createCakeDesign = async (payload) => {
+        try {
+            const formData = buildCakeDesignFormData(payload);
+
+            await apiSend(CAKE_DESIGNS_URL, {
+                method: "POST",
+                body: formData,
+            });
+
+            await loadCakeDesigns();
+        } catch (e) {
+            alert("Ошибка создания дизайна: " + (e?.message || "Unknown error"));
         }
     };
 
-    const [customers, setCustomers] = useState([]);
-    const [customersLoading, setCustomersLoading] = useState(false);
-    const [customersError, setCustomersError] = useState("");
+    const updateCakeDesign = async (id, payload) => {
+        try {
+            const formData = buildCakeDesignFormData(payload);
+
+            await apiSend(`${CAKE_DESIGNS_URL}/${encodeURIComponent(id)}`, {
+                method: "PUT",
+                body: formData,
+            });
+
+            await loadCakeDesigns();
+        } catch (e) {
+            alert("Ошибка обновления дизайна: " + (e?.message || "Unknown error"));
+        }
+    };
+
+    const deleteCakeDesign = async (id) => {
+        if (!window.confirm(`Удалить дизайн #${id}?`)) return;
+
+        try {
+            await apiSend(`${CAKE_DESIGNS_URL}/${encodeURIComponent(id)}`, {
+                method: "DELETE",
+            });
+
+            await loadCakeDesigns();
+        } catch (e) {
+            alert("Ошибка удаления дизайна: " + (e?.message || "Unknown error"));
+        }
+    };
+
+    const loadCategories = async () => {
+        setCategoriesLoading(true);
+        setCategoriesError("");
+        try {
+            const data = await apiGet(CATEGORIES_URL);
+            setCategories(Array.isArray(data) ? data : []);
+        } catch (e) {
+            setCategoriesError(e?.message || "Не удалось загрузить категории");
+        } finally {
+            setCategoriesLoading(false);
+        }
+    };
+
+    const createCategory = async (payload) => {
+        try {
+            await apiSend(CATEGORIES_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            await loadCategories();
+        } catch (e) {
+            alert("Ошибка создания категории: " + (e?.message || "Unknown error"));
+        }
+    };
+
+    const updateCategory = async (id, payload) => {
+        try {
+            await apiSend(`${CATEGORIES_URL}/${encodeURIComponent(id)}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            await loadCategories();
+        } catch (e) {
+            alert("Ошибка обновления категории: " + (e?.message || "Unknown error"));
+        }
+    };
+
+    const deleteCategory = async (id) => {
+        if (!window.confirm(`Удалить категорию #${id}?`)) return;
+        try {
+            await apiSend(`${CATEGORIES_URL}/${encodeURIComponent(id)}`, {
+                method: "DELETE",
+            });
+            await loadCategories();
+        } catch (e) {
+            alert("Ошибка удаления категории: " + (e?.message || "Unknown error"));
+        }
+    };
 
     const loadCustomers = async () => {
         setCustomersLoading(true);
@@ -130,23 +313,6 @@ const AdminPage = () => {
         }
     };
 
-    const registerCustomer = async (payload) => {
-        try {
-            await apiSend(`${AUTH_API}/register`, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(payload),
-            });
-            await loadCustomers();
-        } catch (e) {
-            alert("Register error: " + (e?.message || "Unknown error"));
-        }
-    };
-
-    const [payments, setPayments] = useState([]);
-    const [paymentsLoading, setPaymentsLoading] = useState(false);
-    const [paymentsError, setPaymentsError] = useState("");
-
     const loadPayments = async () => {
         setPaymentsLoading(true);
         setPaymentsError("");
@@ -159,45 +325,6 @@ const AdminPage = () => {
             setPaymentsLoading(false);
         }
     };
-
-    const createPayment = async (payload) => {
-        try {
-            await apiSend(PAYMENTS_URL, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(payload),
-            });
-            await loadPayments();
-        } catch (e) {
-            alert("Create payment error: " + (e?.message || "Unknown error"));
-        }
-    };
-
-    const confirmPayment = async (id) => {
-        try {
-            await apiSend(`${PAYMENTS_URL}/${encodeURIComponent(id)}/confirm`, {
-                method: "POST",
-            });
-            await loadPayments();
-        } catch (e) {
-            alert("Confirm error: " + (e?.message || "Unknown error"));
-        }
-    };
-
-    const refundPayment = async (id) => {
-        try {
-            await apiSend(`${PAYMENTS_URL}/${encodeURIComponent(id)}/refund`, {
-                method: "POST",
-            });
-            await loadPayments();
-        } catch (e) {
-            alert("Refund error: " + (e?.message || "Unknown error"));
-        }
-    };
-
-    const [notifications, setNotifications] = useState([]);
-    const [notificationsLoading, setNotificationsLoading] = useState(false);
-    const [notificationsError, setNotificationsError] = useState("");
 
     const loadNotifications = async () => {
         setNotificationsLoading(true);
@@ -212,40 +339,22 @@ const AdminPage = () => {
         }
     };
 
-    const loadCartCount = () => {
-        try {
-            const raw = localStorage.getItem("cartItems");
-            if (!raw) {
-                setCartCount(0);
-                return;
-            }
-            const items = JSON.parse(raw);
-            const count = items.reduce((sum, it) => sum + (it.quantity || 0), 0);
-            setCartCount(count);
-        } catch {
-            setCartCount(0);
-        }
-    };
-
-    const loadAdminName = () => {
-        try {
-            const raw = localStorage.getItem("currentCustomer");
-            if (!raw) return;
-            const u = JSON.parse(raw);
-            setAdminName(u?.name || u?.username || "ADMIN");
-        } catch {
-            // ignore
-        }
-    };
-
     const handleTabChange = (tab) => {
         setActiveTab(tab);
+
         switch (tab) {
             case "orders":
                 loadOrders("");
                 break;
             case "products":
                 loadProducts();
+                loadCategories();
+                break;
+            case "cake-designs":
+                loadCakeDesigns();
+                break;
+            case "categories":
+                loadCategories();
                 break;
             case "customers":
                 loadCustomers();
@@ -262,45 +371,53 @@ const AdminPage = () => {
     };
 
     useEffect(() => {
-        loadCartCount();
         loadAdminName();
         loadOrders("");
     }, []);
 
     const year = new Date().getFullYear();
 
+    const tabs = [
+        ["orders", "Orders"],
+        ["products", "Products"],
+        ["cake-designs", "Cake Designs"],
+        ["categories", "Categories"],
+        ["customers", "Customers"],
+        ["payments", "Payments"],
+        ["notifications", "Notifications"],
+    ];
+
     return (
-        <div className="cart-page">
-            <div className="page">
+        <div className="admin-page-shell">
+            <div className="admin-page">
                 <header className="admin-header">
                     <div className="admin-logo">CAKEFACTORY · Admin</div>
-                    <div className="admin-header-right">
-    <span className="small">
-        Logged in as <b>{adminName}</b>
-    </span>
 
-                        <Link to="/" className="btn-ghost">
+                    <div className="admin-header-right">
+                        <span className="admin-user">
+                            Logged in as <b>{adminName}</b>
+                        </span>
+
+                        <Link to="/" className="admin-btn admin-btn-light">
                             Back to site
                         </Link>
 
-                        <button type="button" className="btn-ghost" onClick={handleLogout}>
+                        <button
+                            type="button"
+                            className="admin-btn admin-btn-light"
+                            onClick={handleLogout}
+                        >
                             Logout
                         </button>
                     </div>
                 </header>
 
                 <div className="admin-tabs">
-                    {[
-                        ["orders", "Orders"],
-                        ["products", "Products"],
-                        ["customers", "Customers"],
-                        ["payments", "Payments"],
-                        ["notifications", "Notifications"],
-                    ].map(([key, label]) => (
+                    {tabs.map(([key, label]) => (
                         <button
                             key={key}
                             type="button"
-                            className={"tab-btn" + (activeTab === key ? " active" : "")}
+                            className={`admin-tab ${activeTab === key ? "active" : ""}`}
                             onClick={() => handleTabChange(key)}
                         >
                             {label}
@@ -308,56 +425,77 @@ const AdminPage = () => {
                     ))}
                 </div>
 
-                {activeTab === "orders" && (
-                    <OrdersList
-                        orders={orders}
-                        loading={ordersLoading}
-                        error={ordersError}
-                        filterStatus={ordersFilterStatus}
-                        onFilterChange={loadOrders}
-                        onStatusChange={changeOrderStatus}
-                    />
-                )}
+                <section className="admin-content-card">
+                    {activeTab === "orders" && (
+                        <OrdersList
+                            orders={orders}
+                            loading={ordersLoading}
+                            error={ordersError}
+                            filterStatus={ordersFilterStatus}
+                            onFilterChange={loadOrders}
+                            onStatusChange={changeOrderStatus}
+                        />
+                    )}
 
-                {activeTab === "products" && (
-                    <ProductsList
-                        products={products}
-                        loading={productsLoading}
-                        error={productsError}
-                        onCreate={createProduct}
-                        onDelete={deleteProduct}
-                    />
-                )}
+                    {activeTab === "products" && (
+                        <ProductsList
+                            products={products}
+                            categories={categories}
+                            loading={productsLoading || categoriesLoading}
+                            error={productsError || categoriesError}
+                            onCreate={createProduct}
+                            onUpdate={updateProduct}
+                            onDelete={deleteProduct}
+                        />
+                    )}
+                    {activeTab === "cake-designs" && (
+                        <CakeDesignsList
+                            cakeDesigns={cakeDesigns}
+                            loading={cakeDesignsLoading}
+                            error={cakeDesignsError}
+                            onCreate={createCakeDesign}
+                            onUpdate={updateCakeDesign}
+                            onDelete={deleteCakeDesign}
+                        />
+                    )}
 
-                {activeTab === "customers" && (
-                    <CustomersList
-                        customers={customers}
-                        loading={customersLoading}
-                        error={customersError}
-                        onRegister={registerCustomer}
-                    />
-                )}
+                    {activeTab === "categories" && (
+                        <CategoriesList
+                            categories={categories}
+                            loading={categoriesLoading}
+                            error={categoriesError}
+                            onCreate={createCategory}
+                            onUpdate={updateCategory}
+                            onDelete={deleteCategory}
+                        />
+                    )}
 
-                {activeTab === "payments" && (
-                    <PaymentsList
-                        payments={payments}
-                        loading={paymentsLoading}
-                        error={paymentsError}
-                        onCreate={createPayment}
-                        onConfirm={confirmPayment}
-                        onRefund={refundPayment}
-                    />
-                )}
+                    {activeTab === "customers" && (
+                        <CustomersList
+                            customers={customers}
+                            loading={customersLoading}
+                            error={customersError}
+                        />
+                    )}
 
-                {activeTab === "notifications" && (
-                    <NotificationsList
-                        notifications={notifications}
-                        loading={notificationsLoading}
-                        error={notificationsError}
-                    />
-                )}
+                    {activeTab === "payments" && (
+                        <PaymentsList
+                            payments={payments}
+                            loading={paymentsLoading}
+                            error={paymentsError}
+                        />
+                    )}
 
-                <div className="footer-mini">© {year} CakeFactory · Admin</div>
+                    {activeTab === "notifications" && (
+                        <NotificationsList
+                            notifications={notifications}
+                            loading={notificationsLoading}
+                            error={notificationsError}
+                        />
+                    )}
+                </section>
+
+                <div className="admin-footer">© {year} CakeFactory · Admin</div>
             </div>
         </div>
     );

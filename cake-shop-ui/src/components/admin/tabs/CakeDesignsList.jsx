@@ -1,31 +1,50 @@
-import React, { useMemo, useState } from "react";
+import React, {useEffect, useMemo, useState} from "react";
+
+const DESIGN_CATEGORIES = [
+    "WEDDING",
+    "BIRTHDAY",
+    "KIDS",
+    "MINIMAL",
+    "FLORAL",
+    "HOLIDAY",
+];
 
 const emptyForm = {
     name: "",
     description: "",
-    price: "",
+    designCategory: "",
     isActive: true,
-    categoryCode: "",
     imageFile: null,
 };
 
-const ProductsList = ({
-                          products,
-                          categories,
-                          loading,
-                          error,
-                          onCreate,
-                          onUpdate,
-                          onDelete,
-                      }) => {
+const CakeDesignsList = ({
+                             cakeDesigns,
+                             loading,
+                             error,
+                             onCreate,
+                             onUpdate,
+                             onDelete,
+                         }) => {
     const [form, setForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState("");
 
-    const previewUrl = useMemo(() => {
-        if (!form.imageFile) return "";
-        return URL.createObjectURL(form.imageFile);
+    useEffect(() => {
+        if (!form.imageFile) {
+            setPreviewUrl("");
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(form.imageFile);
+        setPreviewUrl(objectUrl);
+
+        return () => URL.revokeObjectURL(objectUrl);
     }, [form.imageFile]);
+
+    const sortedDesigns = useMemo(() => {
+        return [...cakeDesigns].sort((a, b) => (b.id || 0) - (a.id || 0));
+    }, [cakeDesigns]);
 
     const resetForm = () => {
         setForm(emptyForm);
@@ -33,7 +52,7 @@ const ProductsList = ({
     };
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const {name, value, type, checked} = e.target;
 
         setForm((prev) => ({
             ...prev,
@@ -50,14 +69,13 @@ const ProductsList = ({
         }));
     };
 
-    const handleEdit = (product) => {
-        setEditingId(product.id);
+    const handleEdit = (design) => {
+        setEditingId(design.id);
         setForm({
-            name: product.name || "",
-            description: product.description || "",
-            price: product.price || "",
-            isActive: Boolean(product.isActive),
-            categoryCode: product.categoryCode || "",
+            name: design.name || "",
+            description: design.description || "",
+            designCategory: design.designCategory || "",
+            isActive: Boolean(design.isActive),
             imageFile: null,
         });
     };
@@ -66,17 +84,12 @@ const ProductsList = ({
         e.preventDefault();
 
         if (!form.name.trim()) {
-            alert("Введите название товара");
+            alert("Введите название дизайна");
             return;
         }
 
-        if (!form.price) {
-            alert("Введите цену");
-            return;
-        }
-
-        if (!form.categoryCode) {
-            alert("Выберите категорию");
+        if (!form.designCategory) {
+            alert("Выберите категорию дизайна");
             return;
         }
 
@@ -90,8 +103,8 @@ const ProductsList = ({
             }
 
             resetForm();
-        } catch (e) {
-            console.error(e);
+        } catch (err) {
+            console.error(err);
         } finally {
             setSubmitting(false);
         }
@@ -100,7 +113,10 @@ const ProductsList = ({
     return (
         <div className="admin-section">
             <div className="admin-section-header">
-                <h2>Products management</h2>
+                <h2>Cake designs management</h2>
+                <p className="admin-section-subtitle">
+                    Управление готовыми дизайнами тортов
+                </p>
             </div>
 
             <form className="admin-form" onSubmit={handleSubmit}>
@@ -108,32 +124,20 @@ const ProductsList = ({
                     <input
                         type="text"
                         name="name"
-                        placeholder="Название товара"
+                        placeholder="Название дизайна"
                         value={form.name}
                         onChange={handleChange}
                     />
 
-                    <input
-                        type="number"
-                        name="price"
-                        step="0.01"
-                        placeholder="Цена"
-                        value={form.price}
-                        onChange={handleChange}
-                    />
-
                     <select
-                        name="categoryCode"
-                        value={form.categoryCode}
+                        name="designCategory"
+                        value={form.designCategory}
                         onChange={handleChange}
                     >
-                        <option value="">Выберите категорию</option>
-                        {categories.map((category) => (
-                            <option
-                                key={category.id || category.code}
-                                value={category.code}
-                            >
-                                {category.name}
+                        <option value="">Выберите категорию дизайна</option>
+                        {DESIGN_CATEGORIES.map((category) => (
+                            <option key={category} value={category}>
+                                {category}
                             </option>
                         ))}
                     </select>
@@ -145,13 +149,13 @@ const ProductsList = ({
                             checked={form.isActive}
                             onChange={handleChange}
                         />
-                        <span>Активный товар</span>
+                        <span>Активный дизайн</span>
                     </label>
                 </div>
 
                 <textarea
                     name="description"
-                    placeholder="Описание товара"
+                    placeholder="Описание дизайна"
                     value={form.description}
                     onChange={handleChange}
                     rows={4}
@@ -167,13 +171,17 @@ const ProductsList = ({
 
                 {previewUrl && (
                     <div className="admin-image-preview">
-                        <img src={previewUrl} alt="Preview" />
+                        <img src={previewUrl} alt="Preview"/>
                     </div>
                 )}
 
                 <div className="admin-form-actions">
-                    <button type="submit" className="admin-btn" disabled={submitting}>
-                        {editingId ? "Обновить товар" : "Добавить товар"}
+                    <button
+                        type="submit"
+                        className="admin-btn"
+                        disabled={submitting}
+                    >
+                        {editingId ? "Обновить дизайн" : "Добавить дизайн"}
                     </button>
 
                     {editingId && (
@@ -188,7 +196,7 @@ const ProductsList = ({
                 </div>
             </form>
 
-            {loading && <div className="admin-state">Загрузка товаров...</div>}
+            {loading && <div className="admin-state">Загрузка дизайнов...</div>}
             {error && <div className="admin-state admin-state-error">{error}</div>}
 
             {!loading && !error && (
@@ -200,36 +208,34 @@ const ProductsList = ({
                             <th>Фото</th>
                             <th>Название</th>
                             <th>Категория</th>
-                            <th>Цена</th>
                             <th>Статус</th>
                             <th>Действия</th>
                         </tr>
                         </thead>
                         <tbody>
-                        {products.map((product) => (
-                            <tr key={product.id}>
-                                <td>{product.id}</td>
+                        {sortedDesigns.map((design) => (
+                            <tr key={design.id}>
+                                <td>{design.id}</td>
                                 <td>
-                                    {product.imageUrl ? (
+                                    {design.imageUrl ? (
                                         <img
-                                            src={product.imageUrl}
-                                            alt={product.name}
+                                            src={design.imageUrl}
+                                            alt={design.name}
                                             className="admin-product-thumb"
                                         />
                                     ) : (
                                         <span>—</span>
                                     )}
                                 </td>
-                                <td>{product.name}</td>
-                                <td>{product.categoryName || product.categoryCode}</td>
-                                <td>{product.price}</td>
-                                <td>{product.isActive ? "Активен" : "Скрыт"}</td>
+                                <td>{design.name}</td>
+                                <td>{design.designCategory}</td>
+                                <td>{design.isActive ? "Активен" : "Скрыт"}</td>
                                 <td>
                                     <div className="admin-row-actions">
                                         <button
                                             type="button"
                                             className="admin-btn admin-btn-light"
-                                            onClick={() => handleEdit(product)}
+                                            onClick={() => handleEdit(design)}
                                         >
                                             Edit
                                         </button>
@@ -237,7 +243,7 @@ const ProductsList = ({
                                         <button
                                             type="button"
                                             className="admin-btn admin-btn-danger"
-                                            onClick={() => onDelete(product.id)}
+                                            onClick={() => onDelete(design.id)}
                                         >
                                             Delete
                                         </button>
@@ -245,9 +251,10 @@ const ProductsList = ({
                                 </td>
                             </tr>
                         ))}
-                        {products.length === 0 && (
+
+                        {sortedDesigns.length === 0 && (
                             <tr>
-                                <td colSpan="7">Товары пока отсутствуют</td>
+                                <td colSpan="6">Дизайны пока отсутствуют</td>
                             </tr>
                         )}
                         </tbody>
@@ -258,4 +265,4 @@ const ProductsList = ({
     );
 };
 
-export default ProductsList;
+export default CakeDesignsList;

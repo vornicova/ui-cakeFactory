@@ -7,43 +7,25 @@ const IMAGE_BASE = "http://localhost:8081";
 const ALL_CATEGORY = "ALL";
 
 const HIDDEN_CATEGORY_KEYS = [
-    "CUSTOM",
-    "CUSTOM_CAKE",
-    "CUSTOM_CAKES",
-    "INDIVIDUAL",
-    "INDIVIDUAL_CAKE",
-    "INDIVIDUAL_CAKES",
+    "CUSTOM"
 ];
 
 const HIDDEN_CATEGORY_LABELS = [
-    "ИНДИВИДУАЛЬНЫЕ ТОРТЫ",
-    "ИНДИВИДУАЛЬНЫЙ ТОРТ",
-    "CUSTOM CAKE",
-    "CUSTOM CAKES",
-    "PERSONAL CAKE",
-    "PERSONAL CAKES",
+    "CUSTOM"
 ];
 
 const CATEGORY_LABELS = {
-    CAKE: "Торты",
-    CAKES: "Торты",
-    DESSERT: "Десерты",
-    DESSERTS: "Десерты",
-    MACARON: "Макаруны",
-    MACARONS: "Макаруны",
-    CUPCAKE: "Капкейки",
-    CUPCAKES: "Капкейки",
-    PASTRY: "Пирожные",
-    PASTRIES: "Пирожные",
+    CAKES: "CAKES",
+    DESSERTS: "DESSERTS",
+    MACARONS: "MACARONS",
+    CUPCAKES: "CUPCAKES",
 };
 
 const CATEGORY_KEY_BY_LABEL = {
-    "ТОРТЫ": "CAKES",
-    "ДЕСЕРТЫ": "DESSERTS",
-    "МАКАРУНЫ": "MACARONS",
-    "МАКАРОНЫ": "MACARONS",
-    "КАПКЕЙКИ": "CUPCAKES",
-    "ПИРОЖНЫЕ": "PASTRIES",
+    "CAKES": "CAKES",
+    "DESSERTS": "DESSERTS",
+    "MACARONS": "MACARONS",
+    "CUPCAKES": "CUPCAKES",
 };
 
 const normalizeString = (value) =>
