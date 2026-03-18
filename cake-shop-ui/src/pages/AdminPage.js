@@ -19,9 +19,12 @@ import {
     USERS_URL,
     PAYMENTS_URL,
     NOTIFICATIONS_URL,
+    ADMIN_PRODUCTS_URL,
 } from "../api/api";
 
 import "../styles/admin.css";
+
+const IMAGE_BASE = "http://localhost:8081";
 
 const AdminPage = () => {
     const navigate = useNavigate();
@@ -58,14 +61,35 @@ const AdminPage = () => {
     const [notificationsLoading, setNotificationsLoading] = useState(false);
     const [notificationsError, setNotificationsError] = useState("");
 
+    const resolveImageUrl = (rawUrl) => {
+        if (!rawUrl) return "";
+        const url = String(rawUrl).trim();
+
+        if (!url) return "";
+        if (url.startsWith("http://") || url.startsWith("https://")) return url;
+
+        return `${IMAGE_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+    };
+
+    const normalizeProduct = (product) => ({
+        ...product,
+        imageUrl: resolveImageUrl(product?.imageUrl),
+    });
+
+    const normalizeCakeDesign = (design) => ({
+        ...design,
+        imageUrl: resolveImageUrl(design?.imageUrl),
+    });
+
     const loadAdminName = () => {
         try {
             const raw = localStorage.getItem("currentCustomer");
             if (!raw) return;
+
             const user = JSON.parse(raw);
             setAdminName(user?.name || user?.username || "ADMIN");
         } catch {
-            // ignore
+            setAdminName("ADMIN");
         }
     };
 
@@ -81,6 +105,7 @@ const AdminPage = () => {
     const loadOrders = async (status = "") => {
         setOrdersLoading(true);
         setOrdersError("");
+
         try {
             const url = status
                 ? `${ORDERS_URL}?status=${encodeURIComponent(status)}`
@@ -91,6 +116,7 @@ const AdminPage = () => {
             setOrdersFilterStatus(status);
         } catch (e) {
             setOrdersError(e?.message || "Не удалось загрузить заказы");
+            setOrders([]);
         } finally {
             setOrdersLoading(false);
         }
@@ -111,11 +137,14 @@ const AdminPage = () => {
     const loadProducts = async () => {
         setProductsLoading(true);
         setProductsError("");
+
         try {
             const data = await apiGet(PRODUCTS_URL);
-            setProducts(Array.isArray(data) ? data : []);
+            const safeData = Array.isArray(data) ? data : [];
+            setProducts(safeData.map(normalizeProduct));
         } catch (e) {
             setProductsError(e?.message || "Не удалось загрузить продукты");
+            setProducts([]);
         } finally {
             setProductsLoading(false);
         }
@@ -123,13 +152,14 @@ const AdminPage = () => {
 
     const buildProductFormData = (payload) => {
         const formData = new FormData();
-        formData.append("name", payload.name ?? "");
-        formData.append("description", payload.description ?? "");
-        formData.append("price", payload.price ?? "");
-        formData.append("isActive", String(payload.isActive ?? true));
-        formData.append("categoryCode", payload.categoryCode ?? "");
 
-        if (payload.imageFile) {
+        formData.append("name", payload?.name ?? "");
+        formData.append("description", payload?.description ?? "");
+        formData.append("price", payload?.price ?? "");
+        formData.append("isActive", String(payload?.isActive ?? true));
+        formData.append("categoryCode", payload?.categoryCode ?? "");
+
+        if (payload?.imageFile instanceof File) {
             formData.append("image", payload.imageFile);
         }
 
@@ -140,7 +170,7 @@ const AdminPage = () => {
         try {
             const formData = buildProductFormData(payload);
 
-            await apiSend(PRODUCTS_URL, {
+            await apiSend(ADMIN_PRODUCTS_URL, {
                 method: "POST",
                 body: formData,
             });
@@ -155,7 +185,7 @@ const AdminPage = () => {
         try {
             const formData = buildProductFormData(payload);
 
-            await apiSend(`${PRODUCTS_URL}/${encodeURIComponent(id)}`, {
+            await apiSend(`${ADMIN_PRODUCTS_URL}/${encodeURIComponent(id)}`, {
                 method: "PUT",
                 body: formData,
             });
@@ -168,8 +198,9 @@ const AdminPage = () => {
 
     const deleteProduct = async (id) => {
         if (!window.confirm(`Удалить продукт #${id}?`)) return;
+
         try {
-            await apiSend(`${PRODUCTS_URL}/${encodeURIComponent(id)}`, {
+            await apiSend(`${ADMIN_PRODUCTS_URL}/${encodeURIComponent(id)}`, {
                 method: "DELETE",
             });
             await loadProducts();
@@ -177,28 +208,32 @@ const AdminPage = () => {
             alert("Ошибка удаления продукта: " + (e?.message || "Unknown error"));
         }
     };
+
     const loadCakeDesigns = async () => {
         setCakeDesignsLoading(true);
         setCakeDesignsError("");
 
         try {
             const data = await apiGet(CAKE_DESIGNS_URL);
-            setCakeDesigns(Array.isArray(data) ? data : []);
+            const safeData = Array.isArray(data) ? data : [];
+            setCakeDesigns(safeData.map(normalizeCakeDesign));
         } catch (e) {
             setCakeDesignsError(e?.message || "Не удалось загрузить дизайны тортов");
+            setCakeDesigns([]);
         } finally {
             setCakeDesignsLoading(false);
         }
     };
+
     const buildCakeDesignFormData = (payload) => {
         const formData = new FormData();
 
-        formData.append("name", payload.name ?? "");
-        formData.append("description", payload.description ?? "");
-        formData.append("designCategory", payload.designCategory ?? "");
-        formData.append("isActive", String(payload.isActive ?? true));
+        formData.append("name", payload?.name ?? "");
+        formData.append("description", payload?.description ?? "");
+        formData.append("designCategory", payload?.designCategory ?? "");
+        formData.append("isActive", String(payload?.isActive ?? true));
 
-        if (payload.imageFile instanceof File) {
+        if (payload?.imageFile instanceof File) {
             formData.append("image", payload.imageFile);
         }
 
@@ -252,11 +287,13 @@ const AdminPage = () => {
     const loadCategories = async () => {
         setCategoriesLoading(true);
         setCategoriesError("");
+
         try {
             const data = await apiGet(CATEGORIES_URL);
             setCategories(Array.isArray(data) ? data : []);
         } catch (e) {
             setCategoriesError(e?.message || "Не удалось загрузить категории");
+            setCategories([]);
         } finally {
             setCategoriesLoading(false);
         }
@@ -269,6 +306,7 @@ const AdminPage = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
+
             await loadCategories();
         } catch (e) {
             alert("Ошибка создания категории: " + (e?.message || "Unknown error"));
@@ -282,6 +320,7 @@ const AdminPage = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
+
             await loadCategories();
         } catch (e) {
             alert("Ошибка обновления категории: " + (e?.message || "Unknown error"));
@@ -290,10 +329,12 @@ const AdminPage = () => {
 
     const deleteCategory = async (id) => {
         if (!window.confirm(`Удалить категорию #${id}?`)) return;
+
         try {
             await apiSend(`${CATEGORIES_URL}/${encodeURIComponent(id)}`, {
                 method: "DELETE",
             });
+
             await loadCategories();
         } catch (e) {
             alert("Ошибка удаления категории: " + (e?.message || "Unknown error"));
@@ -303,11 +344,13 @@ const AdminPage = () => {
     const loadCustomers = async () => {
         setCustomersLoading(true);
         setCustomersError("");
+
         try {
             const data = await apiGet(USERS_URL);
             setCustomers(Array.isArray(data) ? data : []);
         } catch (e) {
             setCustomersError(e?.message || "Не удалось загрузить клиентов");
+            setCustomers([]);
         } finally {
             setCustomersLoading(false);
         }
@@ -316,11 +359,13 @@ const AdminPage = () => {
     const loadPayments = async () => {
         setPaymentsLoading(true);
         setPaymentsError("");
+
         try {
             const data = await apiGet(PAYMENTS_URL);
             setPayments(Array.isArray(data) ? data : []);
         } catch (e) {
             setPaymentsError(e?.message || "Не удалось загрузить платежи");
+            setPayments([]);
         } finally {
             setPaymentsLoading(false);
         }
@@ -329,11 +374,13 @@ const AdminPage = () => {
     const loadNotifications = async () => {
         setNotificationsLoading(true);
         setNotificationsError("");
+
         try {
             const data = await apiGet(NOTIFICATIONS_URL);
             setNotifications(Array.isArray(data) ? data : []);
         } catch (e) {
             setNotificationsError(e?.message || "Не удалось загрузить уведомления");
+            setNotifications([]);
         } finally {
             setNotificationsLoading(false);
         }
@@ -448,6 +495,7 @@ const AdminPage = () => {
                             onDelete={deleteProduct}
                         />
                     )}
+
                     {activeTab === "cake-designs" && (
                         <CakeDesignsList
                             cakeDesigns={cakeDesigns}

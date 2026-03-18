@@ -5,9 +5,9 @@ const AddProductForm = () => {
         name: "",
         description: "",
         price: "",
-        categoryId: ""
+        categoryCode: ""
     });
-    const [image, setImage] = useState(null);
+    const [imageUrl, setImageUrl] = useState(null);
 
     const handleChange = (e) => {
         setForm({
@@ -17,7 +17,7 @@ const AddProductForm = () => {
     };
 
     const handleFileChange = (e) => {
-        setImage(e.target.files[0]);
+        setImageUrl(e.target.files[0]);
     };
 
     const handleSubmit = async (e) => {
@@ -27,13 +27,13 @@ const AddProductForm = () => {
         data.append("name", form.name);
         data.append("description", form.description);
         data.append("price", form.price);
-        data.append("categoryId", form.categoryId);
+        data.append("categoryCode", form.categoryCode);
 
-        if (image) {
-            data.append("image", image);
+        if (imageUrl) {
+            data.append("imageUrl", imageUrl);
         }
 
-        const response = await fetch("/api/products", {
+        const response = await fetch("/api/admin/products", {
             method: "POST",
             body: data
         });
@@ -72,16 +72,16 @@ const AddProductForm = () => {
             />
 
             <input
-                name="categoryId"
+                name="categoryCode"
                 type="number"
                 placeholder="ID категории"
-                value={form.categoryId}
+                value={form.categoryCode}
                 onChange={handleChange}
             />
 
             <input
                 type="file"
-                accept="image/*"
+                accept="imageUrl/*"
                 onChange={handleFileChange}
             />
 

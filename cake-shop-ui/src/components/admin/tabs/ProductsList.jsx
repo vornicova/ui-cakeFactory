@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const emptyForm = {
     name: "",
@@ -21,15 +21,27 @@ const ProductsList = ({
     const [form, setForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState("");
+    const [currentImageUrl, setCurrentImageUrl] = useState("");
 
-    const previewUrl = useMemo(() => {
-        if (!form.imageFile) return "";
-        return URL.createObjectURL(form.imageFile);
+    useEffect(() => {
+        if (!form.imageFile) {
+            setPreviewUrl("");
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(form.imageFile);
+        setPreviewUrl(objectUrl);
+
+        return () => {
+            URL.revokeObjectURL(objectUrl);
+        };
     }, [form.imageFile]);
 
     const resetForm = () => {
         setForm(emptyForm);
         setEditingId(null);
+        setCurrentImageUrl("");
     };
 
     const handleChange = (e) => {
@@ -52,10 +64,12 @@ const ProductsList = ({
 
     const handleEdit = (product) => {
         setEditingId(product.id);
+        setCurrentImageUrl(product.imageUrl || "");
+
         setForm({
             name: product.name || "",
             description: product.description || "",
-            price: product.price || "",
+            price: product.price ?? "",
             isActive: Boolean(product.isActive),
             categoryCode: product.categoryCode || "",
             imageFile: null,
@@ -70,7 +84,7 @@ const ProductsList = ({
             return;
         }
 
-        if (!form.price) {
+        if (form.price === "" || form.price === null) {
             alert("Введите цену");
             return;
         }
@@ -96,6 +110,8 @@ const ProductsList = ({
             setSubmitting(false);
         }
     };
+
+    const imageToShow = previewUrl || currentImageUrl;
 
     return (
         <div className="admin-section">
@@ -165,9 +181,9 @@ const ProductsList = ({
                     />
                 </div>
 
-                {previewUrl && (
+                {imageToShow && (
                     <div className="admin-image-preview">
-                        <img src={previewUrl} alt="Preview" />
+                        <img src={imageToShow} alt="Preview" />
                     </div>
                 )}
 
@@ -245,6 +261,7 @@ const ProductsList = ({
                                 </td>
                             </tr>
                         ))}
+
                         {products.length === 0 && (
                             <tr>
                                 <td colSpan="7">Товары пока отсутствуют</td>
