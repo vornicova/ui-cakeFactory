@@ -4,6 +4,7 @@ const API_BASE = "/api";
 
 // ================= ENDPOINTS =================
 export const PRODUCTS_URL = `${API_BASE}/products`;
+export const ADMIN_PRODUCTS_URL = `${API_BASE}/admin/products`;
 export const CATEGORIES_URL = `${API_BASE}/categories`;
 export const CAKE_DESIGNS_URL = `${API_BASE}/cake-designs`;
 
@@ -140,7 +141,7 @@ export async function getCakeDesigns() {
 export async function createProduct(payload) {
     const isFormData = payload instanceof FormData;
 
-    return apiSend(PRODUCTS_URL, {
+    return apiSend(ADMIN_PRODUCTS_URL, {
         method: "POST",
         body: isFormData ? payload : JSON.stringify(payload),
     });
@@ -149,14 +150,14 @@ export async function createProduct(payload) {
 export async function updateProduct(id, payload) {
     const isFormData = payload instanceof FormData;
 
-    return apiSend(`${PRODUCTS_URL}/${encodeURIComponent(id)}`, {
+    return apiSend(`${ADMIN_PRODUCTS_URL}/${encodeURIComponent(id)}`, {
         method: "PUT",
         body: isFormData ? payload : JSON.stringify(payload),
     });
 }
 
 export async function deleteProduct(id) {
-    return apiSend(`${PRODUCTS_URL}/${encodeURIComponent(id)}`, {
+    return apiSend(`${ADMIN_PRODUCTS_URL}/${encodeURIComponent(id)}`, {
         method: "DELETE",
     });
 }

@@ -68,17 +68,17 @@ function AuthPage() {
 
             if (isLogin) {
                 tokens = await loginCustomer({
-                    username: emailValue,
+                    email: emailValue,
                     password: passwordValue,
                 });
             } else {
                 await registerCustomer({
-                    username: emailValue,
+                    email: emailValue,
                     password: passwordValue,
                 });
 
                 tokens = await loginCustomer({
-                    username: emailValue,
+                    email: emailValue,
                     password: passwordValue,
                 });
             }
