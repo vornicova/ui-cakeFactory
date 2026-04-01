@@ -17,27 +17,35 @@ function isValidEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function isValidPhone(value) {
+    return /^\+?\d{8,15}$/.test(value);
+}
+
 function AuthPage() {
     const [mode, setMode] = useState("login");
     const isLogin = useMemo(() => mode === "login", [mode]);
 
     const [fullName, setFullName] = useState("");
+    const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
 
     const navigate = useNavigate();
 
-    const switchToLogin = () => {
-        setMode("login");
+    const resetCommonErrors = () => {
         setError("");
         setPassword("");
     };
 
+    const switchToLogin = () => {
+        setMode("login");
+        resetCommonErrors();
+    };
+
     const switchToRegister = () => {
         setMode("register");
-        setError("");
-        setPassword("");
+        resetCommonErrors();
     };
 
     const handleSubmit = async (e) => {
@@ -47,6 +55,7 @@ function AuthPage() {
         const emailValue = email.trim();
         const passwordValue = password.trim();
         const fullNameValue = fullName.trim();
+        const phoneValue = phone.trim();
 
         if (!emailValue || !passwordValue) {
             setError("Заполните e-mail и пароль.");
@@ -63,6 +72,16 @@ function AuthPage() {
             return;
         }
 
+        if (!isLogin && !phoneValue) {
+            setError("Заполните номер телефона.");
+            return;
+        }
+
+        if (!isLogin && !isValidPhone(phoneValue)) {
+            setError("Введите корректный номер телефона.");
+            return;
+        }
+
         try {
             let tokens;
 
@@ -75,6 +94,8 @@ function AuthPage() {
                 await registerCustomer({
                     email: emailValue,
                     password: passwordValue,
+                    fullName: fullNameValue,
+                    phone: phoneValue,
                 });
 
                 tokens = await loginCustomer({
@@ -92,6 +113,7 @@ function AuthPage() {
             safeWriteJson(TOKENS_KEY, {
                 accessToken: token,
             });
+
             const me = await getMe(token);
             safeWriteJson(PROFILE_KEY, me);
 
@@ -127,6 +149,19 @@ function AuthPage() {
                                 onChange={(e) => setFullName(e.target.value)}
                                 placeholder="Ваше имя"
                                 autoComplete="name"
+                            />
+
+                            <label className="auth-field-label" htmlFor="phone">
+                                Телефон
+                            </label>
+                            <input
+                                id="phone"
+                                className="auth-input"
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                placeholder="+373..."
+                                autoComplete="tel"
                             />
                         </>
                     )}
@@ -170,14 +205,34 @@ function AuthPage() {
                     {isLogin ? (
                         <>
                             Нет аккаунта?{" "}
-                            <span className="auth-link" onClick={switchToRegister}>
+                            <span
+                                className="auth-link"
+                                onClick={switchToRegister}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        switchToRegister();
+                                    }
+                                }}
+                            >
                                 Зарегистрироваться
                             </span>
                         </>
                     ) : (
                         <>
                             Уже есть аккаунт?{" "}
-                            <span className="auth-link" onClick={switchToLogin}>
+                            <span
+                                className="auth-link"
+                                onClick={switchToLogin}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        switchToLogin();
+                                    }
+                                }}
+                            >
                                 Войти
                             </span>
                         </>

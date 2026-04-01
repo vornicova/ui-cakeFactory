@@ -84,7 +84,10 @@ const AdminPage = () => {
     const loadAdminName = () => {
         try {
             const raw = localStorage.getItem("currentCustomer");
-            if (!raw) return;
+            if (!raw) {
+                setAdminName("ADMIN");
+                return;
+            }
 
             const user = JSON.parse(raw);
             setAdminName(user?.name || user?.username || "ADMIN");
@@ -92,14 +95,14 @@ const AdminPage = () => {
             setAdminName("ADMIN");
         }
     };
-
     const handleLogout = () => {
         localStorage.removeItem("currentCustomer");
-        localStorage.removeItem("token");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         sessionStorage.clear();
-        navigate("/auth");
+
+        setAdminName("ADMIN");
+        navigate("/auth", { replace: true });
     };
 
     const loadOrders = async (status = "") => {
@@ -418,6 +421,21 @@ const AdminPage = () => {
     };
 
     useEffect(() => {
+        const token = localStorage.getItem("accessToken");
+        const rawUser = localStorage.getItem("currentCustomer");
+
+        if (!token || !rawUser) {
+            navigate("/auth", { replace: true });
+            return;
+        }
+
+        const user = JSON.parse(rawUser);
+
+        if (user?.role !== "ADMIN") {
+            navigate("/", { replace: true });
+            return;
+        }
+
         loadAdminName();
         loadOrders("");
     }, []);

@@ -1,5 +1,5 @@
 // src/hooks/useCart.js
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 
 export const useCart = () => {
     const [cartCount, setCartCount] = useState(0);
