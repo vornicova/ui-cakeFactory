@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 
 const emptyForm = {
     name: "",
@@ -45,7 +45,7 @@ const ProductsList = ({
     };
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const {name, value, type, checked} = e.target;
 
         setForm((prev) => ({
             ...prev,
@@ -183,7 +183,7 @@ const ProductsList = ({
 
                 {imageToShow && (
                     <div className="admin-image-preview">
-                        <img src={imageToShow} alt="Preview" />
+                        <img src={imageToShow} alt="Preview"/>
                     </div>
                 )}
 
