@@ -83,22 +83,21 @@ const AdminPage = () => {
 
     const loadAdminName = () => {
         try {
-            const raw = localStorage.getItem("currentCustomer");
+            const raw = localStorage.getItem("currentUserProfile");
             if (!raw) {
                 setAdminName("ADMIN");
                 return;
             }
 
             const user = JSON.parse(raw);
-            setAdminName(user?.name || user?.username || "ADMIN");
+            setAdminName(user?.fullName || user?.name || user?.username || user?.email || "ADMIN");
         } catch {
             setAdminName("ADMIN");
         }
     };
     const handleLogout = () => {
-        localStorage.removeItem("currentCustomer");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("authTokens");
+        localStorage.removeItem("currentUserProfile");
         sessionStorage.clear();
 
         setAdminName("ADMIN");
@@ -421,24 +420,36 @@ const AdminPage = () => {
     };
 
     useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        const rawUser = localStorage.getItem("currentCustomer");
+        try {
+            const rawTokens = localStorage.getItem("authTokens");
+            const rawUser = localStorage.getItem("currentUserProfile");
 
-        if (!token || !rawUser) {
+            if (!rawTokens || !rawUser) {
+                navigate("/auth", { replace: true });
+                return;
+            }
+
+            const tokens = JSON.parse(rawTokens);
+            const user = JSON.parse(rawUser);
+
+            const token = tokens?.accessToken;
+
+            if (!token) {
+                navigate("/auth", { replace: true });
+                return;
+            }
+
+            if (user?.role !== "ADMIN") {
+                navigate("/", { replace: true });
+                return;
+            }
+
+            loadAdminName();
+            loadOrders("");
+        } catch {
             navigate("/auth", { replace: true });
-            return;
         }
-
-        const user = JSON.parse(rawUser);
-
-        if (user?.role !== "ADMIN") {
-            navigate("/", { replace: true });
-            return;
-        }
-
-        loadAdminName();
-        loadOrders("");
-    }, []);
+    }, [navigate]);
 
     const year = new Date().getFullYear();
 
