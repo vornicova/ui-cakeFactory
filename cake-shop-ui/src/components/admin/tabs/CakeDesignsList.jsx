@@ -14,6 +14,7 @@ const emptyForm = {
     description: "",
     designCategory: "",
     isActive: true,
+    decorPrice: "",
     imageFile: null,
 };
 
@@ -76,6 +77,7 @@ const CakeDesignsList = ({
             description: design.description || "",
             designCategory: design.designCategory || "",
             isActive: Boolean(design.isActive),
+            decorPrice: design.decorPrice ?? "",
             imageFile: null,
         });
     };
@@ -90,6 +92,10 @@ const CakeDesignsList = ({
 
         if (!form.designCategory) {
             alert("Выберите категорию дизайна");
+            return;
+        }
+        if (!form.decorPrice) {
+            alert("Введите цену декора");
             return;
         }
 
@@ -141,6 +147,14 @@ const CakeDesignsList = ({
                             </option>
                         ))}
                     </select>
+                    <input
+                        type="number"
+                        name="decorPrice"
+                        placeholder="Цена декора"
+                        step="0.01"
+                        value={form.decorPrice}
+                        onChange={handleChange}
+                    />
 
                     <label className="admin-checkbox">
                         <input
