@@ -18,6 +18,8 @@ export const useCurrentUser = () => {
     const [loading, setLoading] = useState(true);
 
     const load = useCallback(async () => {
+        setLoading(true);
+
         const tokens = safeReadJson(TOKENS_KEY);
         const accessToken = tokens?.accessToken || tokens?.token;
 
@@ -54,7 +56,9 @@ export const useCurrentUser = () => {
             setUser({ ...me, accessToken });
         } catch (error) {
             console.error("Failed to load current user profile:", error);
-            setUser({ accessToken });
+            localStorage.removeItem(TOKENS_KEY);
+            localStorage.removeItem(PROFILE_KEY);
+            setUser(null);
         } finally {
             setLoading(false);
         }
@@ -62,19 +66,22 @@ export const useCurrentUser = () => {
 
     useEffect(() => {
         load();
+
         const handler = () => load();
         window.addEventListener("user:updated", handler);
+
         return () => window.removeEventListener("user:updated", handler);
     }, [load]);
 
     const logout = () => {
+        localStorage.removeItem(TOKENS_KEY);
+        localStorage.removeItem(PROFILE_KEY);
         localStorage.removeItem("currentCustomer");
         localStorage.removeItem("token");
 
         setUser(null);
         window.dispatchEvent(new Event("user:updated"));
     };
-
 
     return { user, logout, loading, reloadUser: load };
 };

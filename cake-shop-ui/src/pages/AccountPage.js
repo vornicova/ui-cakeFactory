@@ -12,8 +12,7 @@ const AccountPage = () => {
     const { user, logout } = useCurrentUser();
     const { loadCartCount } = useCart();
 
-    const isAuthed = !!user?.accessToken || !!user?.token;
-
+    const isAuthed = !!user;
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [ordersError, setOrdersError] = useState("");
