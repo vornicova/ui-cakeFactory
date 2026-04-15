@@ -18,12 +18,15 @@ function readJsonFromLocalStorage(key, fallback) {
 
 function normalizeCartItem(item) {
     return {
+        id: item.id ?? item.productId,
         productId: item.productId ?? item.id,
         productName: item.productName ?? item.name ?? "",
         unitPrice: Number(item.unitPrice ?? item.price ?? 0),
         quantity: Number(item.quantity ?? 0),
         imageUrl: item.imageUrl ?? null,
         category: item.category ?? "",
+        type: item.type ?? "",
+        customData: item.customData ?? null,
     };
 }
 
@@ -31,7 +34,11 @@ const CartPage = () => {
     const navigate = useNavigate();
 
     const [items, setItems] = useState([]);
+    const [deliveryMethod, setDeliveryMethod] = useState("PICKUP");
     const [pickupTime, setPickupTime] = useState("");
+    const [deliveryAddress, setDeliveryAddress] = useState("");
+    const [customerName, setCustomerName] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
     const [comment, setComment] = useState("");
     const [status, setStatus] = useState("");
     const [statusType, setStatusType] = useState("");
@@ -57,6 +64,7 @@ const CartPage = () => {
         setItems(normalized);
         localStorage.setItem("cartItems", JSON.stringify(normalized));
         window.dispatchEvent(new Event("cart:updated"));
+        window.dispatchEvent(new Event("cart-updated"));
     };
 
     const handleInc = (productId) => {
@@ -94,25 +102,62 @@ const CartPage = () => {
 
     const buildOrderPayload = (customer) => ({
         userId: customer.id,
-        pickupTime: pickupTime ? `${pickupTime}:00` : null,
-        comment: comment || "",
+        deliveryMethod,
+        deliveryAddress:
+            deliveryMethod === "DELIVERY" ? deliveryAddress.trim() : null,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        pickupTime:
+            deliveryMethod === "PICKUP" && pickupTime
+                ? `${pickupTime}:00`
+                : null,
+        comment: comment.trim(),
         items: items.map((item) => ({
             productId: item.productId,
             productName: item.productName,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            imageUrl: item.imageUrl,
         })),
     });
+
+    const validateCheckout = () => {
+        if (!items.length) {
+            setStatus("Корзина пуста.");
+            setStatusType("err");
+            return false;
+        }
+
+        if (!customerName.trim()) {
+            setStatus("Введите имя получателя.");
+            setStatusType("err");
+            return false;
+        }
+
+        if (!customerPhone.trim()) {
+            setStatus("Введите номер телефона.");
+            setStatusType("err");
+            return false;
+        }
+
+        if (deliveryMethod === "PICKUP" && !pickupTime) {
+            setStatus("Выберите время самовывоза.");
+            setStatusType("err");
+            return false;
+        }
+
+        if (deliveryMethod === "DELIVERY" && !deliveryAddress.trim()) {
+            setStatus("Введите адрес доставки.");
+            setStatusType("err");
+            return false;
+        }
+
+        return true;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         resetStatus();
-
-        if (!items.length) {
-            setStatus("Корзина пуста.");
-            setStatusType("err");
-            return;
-        }
 
         const customer = readJsonFromLocalStorage("currentUserProfile", null);
 
@@ -120,6 +165,10 @@ const CartPage = () => {
             setStatus("Сначала войдите в аккаунт.");
             setStatusType("err");
             setTimeout(() => navigate("/account"), 600);
+            return;
+        }
+
+        if (!validateCheckout()) {
             return;
         }
 
@@ -177,10 +226,14 @@ const CartPage = () => {
 
             persistItems([]);
             setPickupTime("");
+            setDeliveryAddress("");
+            setCustomerName("");
+            setCustomerPhone("");
             setComment("");
 
             setStatus(`Заказ #${order.id} успешно создан!${paymentStatusText}`);
             setStatusType("ok");
+            window.dispatchEvent(new Event("orders-updated"));
 
             setTimeout(() => navigate("/account"), 1200);
         } catch (error) {
@@ -203,7 +256,7 @@ const CartPage = () => {
                 </div>
 
                 <p className="small" style={{ marginTop: 6 }}>
-                    Проверьте состав заказа перед оформлением.
+                    Проверьте товары перед оформлением заказа.
                 </p>
 
                 <div className="cart-items" style={{ marginTop: 12 }}>
@@ -224,7 +277,7 @@ const CartPage = () => {
                                 : null;
 
                         return (
-                            <div className="cart-item" key={item.productId}>
+                            <div className="cart-item" key={`${item.productId}-${item.id}`}>
                                 <div className="cart-item-image">
                                     {imgUrl ? (
                                         <img src={imgUrl} alt={item.productName} />
@@ -233,7 +286,29 @@ const CartPage = () => {
 
                                 <div>
                                     <div className="cart-item-name">{item.productName}</div>
-                                    <div className="cart-item-meta">{item.category}</div>
+                                    <div className="cart-item-meta">
+                                        {item.category || item.type || ""}
+                                    </div>
+
+                                    {item.customData && (
+                                        <div
+                                            className="cart-item-meta"
+                                            style={{ marginTop: 6 }}
+                                        >
+                                            {item.customData.shape && (
+                                                <div>Форма: {item.customData.shape}</div>
+                                            )}
+                                            {item.customData.flavourName && (
+                                                <div>Вкус: {item.customData.flavourName}</div>
+                                            )}
+                                            {item.customData.weight && (
+                                                <div>Вес: {item.customData.weight} кг</div>
+                                            )}
+                                            {item.customData.decor && (
+                                                <div>Декор: {item.customData.decor}</div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <button
                                         type="button"
@@ -277,23 +352,95 @@ const CartPage = () => {
             <section className="card">
                 <h2>Оформление заказа</h2>
                 <p className="small">
-                    Выберите время самовывоза и добавьте комментарий для кондитера.
+                    Выберите способ получения и заполните данные покупателя.
                 </p>
 
                 <form onSubmit={handleSubmit}>
-                    <label htmlFor="pickupTime">Время самовывоза</label>
+                    <label>Способ получения</label>
+                    <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
+                        <label
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                marginBottom: 0,
+                            }}
+                        >
+                            <input
+                                type="radio"
+                                name="deliveryMethod"
+                                value="PICKUP"
+                                checked={deliveryMethod === "PICKUP"}
+                                onChange={(e) => setDeliveryMethod(e.target.value)}
+                            />
+                            Самовывоз
+                        </label>
+
+                        <label
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                marginBottom: 0,
+                            }}
+                        >
+                            <input
+                                type="radio"
+                                name="deliveryMethod"
+                                value="DELIVERY"
+                                checked={deliveryMethod === "DELIVERY"}
+                                onChange={(e) => setDeliveryMethod(e.target.value)}
+                            />
+                            Доставка
+                        </label>
+                    </div>
+
+                    <label htmlFor="customerName">Имя получателя</label>
                     <input
-                        type="datetime-local"
-                        id="pickupTime"
-                        value={pickupTime}
-                        onChange={(e) => setPickupTime(e.target.value)}
-                        required
+                        type="text"
+                        id="customerName"
+                        placeholder="Введите имя"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
                     />
+
+                    <label htmlFor="customerPhone">Телефон</label>
+                    <input
+                        type="text"
+                        id="customerPhone"
+                        placeholder="Введите номер телефона"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                    />
+
+                    {deliveryMethod === "PICKUP" && (
+                        <>
+                            <label htmlFor="pickupTime">Время самовывоза</label>
+                            <input
+                                type="datetime-local"
+                                id="pickupTime"
+                                value={pickupTime}
+                                onChange={(e) => setPickupTime(e.target.value)}
+                            />
+                        </>
+                    )}
+
+                    {deliveryMethod === "DELIVERY" && (
+                        <>
+                            <label htmlFor="deliveryAddress">Адрес доставки</label>
+                            <textarea
+                                id="deliveryAddress"
+                                placeholder="Например: Кишинёв, ул. Пушкина 10, подъезд 2, этаж 3"
+                                value={deliveryAddress}
+                                onChange={(e) => setDeliveryAddress(e.target.value)}
+                            />
+                        </>
+                    )}
 
                     <label htmlFor="comment">Комментарий</label>
                     <textarea
                         id="comment"
-                        placeholder="Например: без орехов, надпись на торте, цвет свечей..."
+                        placeholder="Например: без орехов, надпись на торте, позвонить перед доставкой..."
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                     />

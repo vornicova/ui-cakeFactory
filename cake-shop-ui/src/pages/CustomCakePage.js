@@ -1,19 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, {useEffect, useMemo, useState} from "react";
+import {useNavigate} from "react-router-dom";
 
-import { FLAVOURS } from "../features/customCake/constants/flavours";
+import {FLAVOURS} from "../features/customCake/constants/flavours";
 import {
     normalizePositiveNumber,
     calculateEstimatedPrice,
 } from "../features/customCake/utils/pricing";
-import { useCurrentCustomer } from "../features/customCake/hooks/useCurrentCustomer";
-import { useSelectedCakeDesign } from "../features/customCake/hooks/useSelectedCakeDesign";
-import { CakePreview } from "../features/customCake/components/CakePreview";
-import { CustomCakeForm } from "../features/customCake/components/CustomCakeForm";
+import {useSelectedCakeDesign} from "../features/customCake/hooks/useSelectedCakeDesign";
+import {CakePreview} from "../features/customCake/components/CakePreview";
+import {CustomCakeForm} from "../features/customCake/components/CustomCakeForm";
 import {
     calculateRecommendedWeightByGuests,
     calculateRecommendedSizeByGuests,
 } from "../features/customCake/utils/guestSizing";
+import {useCurrentUser} from "../hooks/useCurrentUser";
 import "../styles/customCake.css";
 
 const API_BASE = "/api";
@@ -32,6 +32,7 @@ function safeReadCartItems() {
 function safeWriteCartItems(items) {
     try {
         localStorage.setItem("cartItems", JSON.stringify(items));
+        window.dispatchEvent(new Event("cart-updated"));
     } catch (e) {
         console.error("Cannot write cartItems", e);
     }
@@ -39,7 +40,7 @@ function safeWriteCartItems(items) {
 
 const CustomCakePage = () => {
     const navigate = useNavigate();
-    const customer = useCurrentCustomer();
+    const {user} = useCurrentUser();
     const selectedDesign = useSelectedCakeDesign();
 
     const [customProduct, setCustomProduct] = useState(null);
@@ -72,6 +73,9 @@ const CustomCakePage = () => {
         aiDesignStatus: "idle",
     }));
 
+    const isAuthed = !!user?.accessToken || !!user?.token;
+    const currentUserId = user?.id ?? null;
+
     const recommendedWeight = useMemo(
         () => calculateRecommendedWeightByGuests(form.servings),
         [form.servings]
@@ -100,11 +104,14 @@ const CustomCakePage = () => {
                 }
 
                 const data = await resp.json();
+
                 const found =
                     (data || []).find(
                         (p) =>
                             (p.category &&
                                 String(p.category).toUpperCase() === "CUSTOM") ||
+                            (p.categoryCode &&
+                                String(p.categoryCode).toUpperCase() === "CUSTOM") ||
                             (p.name &&
                                 String(p.name).toLowerCase().includes("custom"))
                     ) || null;
@@ -114,9 +121,9 @@ const CustomCakePage = () => {
                         'В каталоге не найден продукт категории CUSTOM. Создайте товар "Custom cake" через админку.'
                     );
                     setStatusType("err");
+                } else {
+                    setCustomProduct(found);
                 }
-
-                setCustomProduct(found);
             } catch (e) {
                 console.error(e);
                 setStatus("Ошибка загрузки продуктов для кастомного торта.");
@@ -207,6 +214,11 @@ const CustomCakePage = () => {
         return null;
     }, [form.aiDesignImage, form.selectedDesign, form.decorPreview]);
 
+    const displayCakeName = useMemo(() => {
+        const flavourName = currentFlavour?.name ? `, ${currentFlavour.name}` : "";
+        return `Кастомный торт (${form.shape}${flavourName})`;
+    }, [form.shape, currentFlavour?.name]);
+
     const year = new Date().getFullYear();
 
     const handleDecorFileChange = (e) => {
@@ -244,10 +256,16 @@ const CustomCakePage = () => {
         setStatus("");
         setStatusType("");
 
-        if (!customer) {
+        if (!isAuthed) {
             setStatus("Чтобы добавить кастомный торт в корзину, войдите в аккаунт.");
             setStatusType("err");
-            setTimeout(() => navigate("/account"), 900);
+            setTimeout(() => navigate("/auth"), 700);
+            return;
+        }
+
+        if (!currentUserId) {
+            setStatus("Профиль пользователя ещё не загружен. Попробуйте снова через пару секунд.");
+            setStatusType("err");
             return;
         }
 
@@ -257,13 +275,22 @@ const CustomCakePage = () => {
             return;
         }
 
+        const normalizedEstimatedPrice = Number(estimatedPrice ?? 0);
+
         const cartItem = {
             id: `custom-${Date.now()}`,
             productId: customProduct.id,
-            name: "Custom Cake",
-            price: estimatedPrice ?? 0,
+            name: displayCakeName,
+            productName: displayCakeName,
+            price: normalizedEstimatedPrice,
+            unitPrice: normalizedEstimatedPrice,
             quantity: 1,
             type: "CUSTOM_CAKE",
+            userId: currentUserId,
+            imageUrl:
+                activeDesignSource?.imageUrl ||
+                customProduct.imageUrl ||
+                null,
             customData: {
                 shape: form.shape,
                 size: finalCakeSize,
@@ -302,7 +329,7 @@ const CustomCakePage = () => {
         items.push(cartItem);
         safeWriteCartItems(items);
 
-        setStatus("Кастомный торт добавлен в корзину!");
+        setStatus("Кастомный торт добавлен в корзину.");
         setStatusType("ok");
 
         setTimeout(() => navigate("/cart"), 600);

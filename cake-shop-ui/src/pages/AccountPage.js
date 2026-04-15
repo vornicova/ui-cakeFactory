@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AccountHeader from "../components/AccountHeader";
 import OrdersList from "../components/OrdersList";
@@ -32,35 +32,49 @@ const AccountPage = () => {
         }
     }, [user?.role, navigate]);
 
-    useEffect(() => {
+    const loadAccountData = useCallback(async () => {
         if (!user?.id || user?.role === "ADMIN") return;
 
-        const load = async () => {
-            setOrdersLoading(true);
-            setOrdersError("");
-            try {
-                const data = await fetchOrders(user.id);
-                setOrders(Array.isArray(data) ? data : []);
-            } catch (e) {
-                setOrdersError(e?.message || "Не удалось загрузить заказы.");
-            } finally {
-                setOrdersLoading(false);
-            }
+        setOrdersLoading(true);
+        setOrdersError("");
+        try {
+            const data = await fetchOrders(user.id);
+            setOrders(Array.isArray(data) ? data : []);
+        } catch (e) {
+            setOrdersError(e?.message || "Не удалось загрузить заказы.");
+        } finally {
+            setOrdersLoading(false);
+        }
 
-            setNotifsLoading(true);
-            setNotifsError("");
-            try {
-                const data = await fetchNotifications(user.id);
-                setNotifs(Array.isArray(data) ? data : []);
-            } catch (e) {
-                setNotifsError(e?.message || "Не удалось загрузить уведомления.");
-            } finally {
-                setNotifsLoading(false);
-            }
+        setNotifsLoading(true);
+        setNotifsError("");
+        try {
+            const data = await fetchNotifications(user.id);
+            setNotifs(Array.isArray(data) ? data : []);
+        } catch (e) {
+            setNotifsError(e?.message || "Не удалось загрузить уведомления.");
+        } finally {
+            setNotifsLoading(false);
+        }
+    }, [user?.id, user?.role]);
+
+    useEffect(() => {
+        loadAccountData();
+    }, [loadAccountData]);
+
+    useEffect(() => {
+        const handleRefresh = () => {
+            loadAccountData();
         };
 
-        load();
-    }, [user?.id, user?.role]);
+        window.addEventListener("focus", handleRefresh);
+        window.addEventListener("orders-updated", handleRefresh);
+
+        return () => {
+            window.removeEventListener("focus", handleRefresh);
+            window.removeEventListener("orders-updated", handleRefresh);
+        };
+    }, [loadAccountData]);
 
     const handleLogout = () => {
         logout();
