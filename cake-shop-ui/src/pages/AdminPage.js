@@ -234,6 +234,7 @@ const AdminPage = () => {
         formData.append("description", payload?.description ?? "");
         formData.append("designCategory", payload?.designCategory ?? "");
         formData.append("isActive", String(payload?.isActive ?? true));
+        formData.append("decorPrice", payload?.decorPrice ?? "");
 
         if (payload?.imageFile instanceof File) {
             formData.append("image", payload.imageFile);
