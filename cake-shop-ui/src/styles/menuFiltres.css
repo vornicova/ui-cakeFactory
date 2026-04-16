@@ -107,7 +107,122 @@
             0 0 0 3px rgba(249, 168, 198, 0.22),
             0 12px 24px rgba(242, 132, 181, 0.12);
 }
+.product-card-desc-wrap {
+    position: relative;
+}
 
+.product-card-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.product-card-tooltip {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 8px);
+    width: 280px;
+    background: #fff;
+    color: #2d1b2e;
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+    border: 1px solid #eee;
+    z-index: 20;
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.product-card-tooltip-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.product-card-desc-wrap:hover .product-card-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.product-card-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.product-more-btn {
+    border: none;
+    background: transparent;
+    color: #b76e8a;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+}
+
+.product-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.product-modal {
+    position: relative;
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px 28px;
+    width: 380px;
+    max-width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    color: #2d1b2e;
+    line-height: 1.5;
+}
+
+.product-modal h2 {
+    margin: 0 0 12px;
+}
+
+.product-modal-price {
+    margin-top: 16px;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.product-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    border: none;
+    background: transparent;
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+}
+.product-modal-image-wrap {
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.product-modal-image {
+    width: 100%;
+    max-height: 240px;
+    object-fit: cover;
+    border-radius: 14px;
+    display: block;
+}
 @media (max-width: 640px) {
     .menu-categories {
         gap: 8px;

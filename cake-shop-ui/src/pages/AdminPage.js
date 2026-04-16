@@ -160,6 +160,7 @@ const AdminPage = () => {
         formData.append("price", payload?.price ?? "");
         formData.append("isActive", String(payload?.isActive ?? true));
         formData.append("categoryCode", payload?.categoryCode ?? "");
+        formData.append("composition", payload?.composition ?? "");
 
         if (payload?.imageFile instanceof File) {
             formData.append("image", payload.imageFile);

@@ -6,19 +6,14 @@ import { PRODUCTS_URL, CATEGORIES_URL } from "../api/api";
 const IMAGE_BASE = "http://localhost:8081";
 const ALL_CATEGORY = "ALL";
 
-const HIDDEN_CATEGORY_KEYS = [
-    "CUSTOM"
-];
-
-const HIDDEN_CATEGORY_LABELS = [
-    "CUSTOM"
-];
+const HIDDEN_CATEGORY_KEYS = ["CUSTOM"];
+const HIDDEN_CATEGORY_LABELS = ["CUSTOM"];
 
 const CATEGORY_LABELS = {
-    CAKES: "CAKES",
-    DESSERTS: "DESSERTS",
-    MACARONS: "MACARONS",
-    CUPCAKES: "CUPCAKES",
+    CAKES: "ТОРТЫ",
+    DESSERTS: "ДЕСЕРТЫ",
+    MACARONS: "МАКАРОНС",
+    CUPCAKES: "КАПКЕЙКИ",
 };
 
 const CATEGORY_KEY_BY_LABEL = {
@@ -26,6 +21,10 @@ const CATEGORY_KEY_BY_LABEL = {
     "DESSERTS": "DESSERTS",
     "MACARONS": "MACARONS",
     "CUPCAKES": "CUPCAKES",
+    "ТОРТЫ": "CAKES",
+    "ДЕСЕРТЫ": "DESSERTS",
+    "МАКАРОНС": "MACARONS",
+    "КАПКЕЙКИ": "CUPCAKES",
 };
 
 const normalizeString = (value) =>
@@ -35,19 +34,28 @@ const normalizeString = (value) =>
         .toUpperCase();
 
 const getCategoryKey = (item) => {
-    const rawKey = normalizeString(item?.category || item?.code);
+    const rawKey = normalizeString(
+        item?.categoryCode || item?.category || item?.code
+    );
 
     if (rawKey) return rawKey;
 
-    const normalizedLabel = normalizeString(item?.categoryName || item?.name);
+    const normalizedLabel = normalizeString(
+        item?.categoryName || item?.categoryLabel || item?.name
+    );
+
     return CATEGORY_KEY_BY_LABEL[normalizedLabel] || normalizedLabel;
 };
 
 const getCategoryDisplayValue = (item) =>
-    String(item?.categoryName || item?.category || item?.name || "").trim();
+    String(
+        item?.categoryName || item?.categoryLabel || item?.category || item?.name || ""
+    ).trim();
 
 const getCategoryDisplayNormalized = (item) =>
-    normalizeString(item?.categoryName || item?.category || item?.name);
+    normalizeString(
+        item?.categoryName || item?.categoryLabel || item?.category || item?.name
+    );
 
 const shouldHideCategory = (item) => {
     const categoryKey = getCategoryKey(item);
@@ -75,7 +83,7 @@ const getImageSrc = (product) => {
         return url;
     }
 
-    return `${IMAGE_BASE}${url}`;
+    return `${IMAGE_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
 };
 
 const normalizeProduct = (product) => {
@@ -88,6 +96,7 @@ const normalizeProduct = (product) => {
         id: product?.id,
         name: String(product?.name || "Без названия").trim(),
         description: String(product?.description || "").trim(),
+        composition: String(product?.composition || "").trim(),
         price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
         imageUrl: product?.imageUrl || "",
         categoryKey,
@@ -129,6 +138,7 @@ const MenuPage = () => {
     const [toast, setToast] = useState("");
     const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY);
     const [sortBy, setSortBy] = useState("default");
+    const [activeProduct, setActiveProduct] = useState(null);
 
     const toastTimeoutRef = useRef(null);
 
@@ -168,7 +178,9 @@ const MenuPage = () => {
                     .filter((category) => category.value);
 
                 const uniqueCategories = Array.from(
-                    new Map(normalizedCategories.map((category) => [category.value, category])).values()
+                    new Map(
+                        normalizedCategories.map((category) => [category.value, category])
+                    ).values()
                 );
 
                 setProducts(normalizedProducts);
@@ -348,9 +360,19 @@ const MenuPage = () => {
                                     </div>
 
                                     {product.description && (
-                                        <p className="product-card-desc">
-                                            {product.description}
-                                        </p>
+                                        <div className="product-card-desc-wrap">
+                                            <p className="product-card-desc">
+                                                {product.description}
+                                            </p>
+
+                                            <button
+                                                type="button"
+                                                className="product-more-btn"
+                                                onClick={() => setActiveProduct(product)}
+                                            >
+                                                Подробнее
+                                            </button>
+                                        </div>
                                     )}
 
                                     <div className="product-card-footer">
@@ -371,6 +393,56 @@ const MenuPage = () => {
                         );
                     })}
             </div>
+
+            {activeProduct && (
+                <div
+                    className="product-modal-overlay"
+                    onClick={() => setActiveProduct(null)}
+                >
+                    <div
+                        className="product-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            className="product-modal-close"
+                            onClick={() => setActiveProduct(null)}
+                        >
+
+                            ×
+                        </button>
+                        {getImageSrc(activeProduct) && (
+                            <div className="product-modal-image-wrap">
+                                <img
+                                    src={getImageSrc(activeProduct)}
+                                    alt={activeProduct.name}
+                                    className="product-modal-image"
+                                />
+                            </div>
+                        )}
+
+                        <h2>{activeProduct.name}</h2>
+
+                        <div>
+                            <b>Категория:</b> {activeProduct.categoryLabel}
+                        </div>
+
+                        <div style={{ marginTop: 10 }}>
+                            <b>Описание:</b> {activeProduct.description}
+                        </div>
+
+                        {activeProduct.composition && (
+                            <div style={{ marginTop: 10 }}>
+                                <b>Состав:</b> {activeProduct.composition}
+                            </div>
+                        )}
+
+                        <div className="product-modal-price">
+                            {activeProduct.price.toFixed(2)} MDL
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {toast && <div className="toast">{toast}</div>}
         </section>

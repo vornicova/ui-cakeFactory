@@ -4,46 +4,65 @@ const AddProductForm = () => {
     const [form, setForm] = useState({
         name: "",
         description: "",
+        composition: "",
         price: "",
-        categoryCode: ""
+        categoryCode: "",
     });
-    const [imageUrl, setImageUrl] = useState(null);
+
+    const [imageFile, setImageFile] = useState(null);
 
     const handleChange = (e) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value
-        });
+        const { name, value } = e.target;
+
+        setForm((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
     };
 
     const handleFileChange = (e) => {
-        setImageUrl(e.target.files[0]);
+        setImageFile(e.target.files?.[0] || null);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const data = new FormData();
-        data.append("name", form.name);
-        data.append("description", form.description);
-        data.append("price", form.price);
-        data.append("categoryCode", form.categoryCode);
+        try {
+            const data = new FormData();
+            data.append("name", form.name);
+            data.append("description", form.description);
+            data.append("composition", form.composition);
+            data.append("price", form.price);
+            data.append("categoryCode", form.categoryCode);
 
-        if (imageUrl) {
-            data.append("imageUrl", imageUrl);
+            if (imageFile) {
+                data.append("image", imageFile);
+            }
+
+            const response = await fetch("/api/admin/products", {
+                method: "POST",
+                body: data,
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to create product");
+            }
+
+            const result = await response.json();
+            console.log("Created:", result);
+
+            setForm({
+                name: "",
+                description: "",
+                composition: "",
+                price: "",
+                categoryCode: "",
+            });
+            setImageFile(null);
+        } catch (error) {
+            console.error(error);
+            alert("Не удалось создать продукт");
         }
-
-        const response = await fetch("/api/admin/products", {
-            method: "POST",
-            body: data
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to create product");
-        }
-
-        const result = await response.json();
-        console.log("Created:", result);
     };
 
     return (
@@ -55,11 +74,20 @@ const AddProductForm = () => {
                 onChange={handleChange}
             />
 
-            <input
+            <textarea
                 name="description"
                 placeholder="Описание"
                 value={form.description}
                 onChange={handleChange}
+                rows={3}
+            />
+
+            <textarea
+                name="composition"
+                placeholder="Состав"
+                value={form.composition}
+                onChange={handleChange}
+                rows={3}
             />
 
             <input
@@ -73,15 +101,14 @@ const AddProductForm = () => {
 
             <input
                 name="categoryCode"
-                type="number"
-                placeholder="ID категории"
+                placeholder="Код категории"
                 value={form.categoryCode}
                 onChange={handleChange}
             />
 
             <input
                 type="file"
-                accept="imageUrl/*"
+                accept="image/*"
                 onChange={handleFileChange}
             />
 
