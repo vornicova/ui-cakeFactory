@@ -3,6 +3,7 @@ import React, {useEffect, useState} from "react";
 const emptyForm = {
     name: "",
     description: "",
+    composition: "",
     price: "",
     isActive: true,
     categoryCode: "",
@@ -69,6 +70,7 @@ const ProductsList = ({
         setForm({
             name: product.name || "",
             description: product.description || "",
+            composition: product.composition || "",
             price: product.price ?? "",
             isActive: Boolean(product.isActive),
             categoryCode: product.categoryCode || "",
@@ -169,6 +171,13 @@ const ProductsList = ({
                     name="description"
                     placeholder="Описание товара"
                     value={form.description}
+                    onChange={handleChange}
+                    rows={4}
+                />
+                <textarea
+                    name="composition"
+                    placeholder="Состав товара"
+                    value={form.composition}
                     onChange={handleChange}
                     rows={4}
                 />
